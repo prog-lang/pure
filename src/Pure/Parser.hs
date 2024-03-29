@@ -1,13 +1,6 @@
 {-# HLINT ignore "Use <$>" #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-
-SOME DOCS:
-- https://wiki.haskell.org/Parsing_expressions_and_statements
-- https://hackage.haskell.org/package/parsec-3.1.16.1/docs/src/Text.Parsec.Language.html#haskellDef
-- https://hackage.haskell.org/package/parsec-3.1.16.1/docs/src/Text.Parsec.Token.html#GenTokenParser
--}
-
 module Pure.Parser (parseModule) where
 
 import Data.Functor ((<&>))

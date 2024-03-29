@@ -88,8 +88,22 @@ ever touched Elm or Haskell, you will know what I'm on about.
 
 ## Research 👩‍🔬
 
+### Inspiration
+
 - [Duet][duet] - a subset of Haskell aimed at aiding teachers teach Haskell
 - [PureScript][ps] - a strongly-typed language that compiles to JavaScript
+
+### Syntactic Analysis
+
+- [Parsec tutorial][parsecTutorial] and some conveniences like
+  [haskelDef][haskellDef] and [GenTokenParser][tokenParser]
+
+[parsecTutorial]: https://wiki.haskell.org/Parsing_expressions_and_statements
+[haskellDef]: https://hackage.haskell.org/package/parsec-3.1.16.1/docs/src/Text.Parsec.Language.html#haskellDef
+[tokenParser]: https://hackage.haskell.org/package/parsec-3.1.16.1/docs/src/Text.Parsec.Token.html#GenTokenParser
+
+### Type Systems
+
 - [Typing Haskell in Haskell][thih] - a renovated version of the legendary paper
 - [Typing Haskell in Haskell PDF][thih-pdf] - the original paper (PDF)
 - [Warnings for pattern matching][warn] - pattern matching algorithms (PDF)
@@ -97,7 +111,7 @@ ever touched Elm or Haskell, you will know what I'm on about.
 [duet]: https://github.com/chrisdone/duet
 [ps]: https://github.com/purescript/purescript
 [thih]: https://github.com/ocramz/thih
-[thih-pdf]: https://github.com/ocramz/thih
+[thih-pdf]: https://web.cecs.pdx.edu/~mpj/thih/thih.pdf
 [warn]: http://moscova.inria.fr/~maranget/papers/warn/warn.pdf
 
 ## Contributing

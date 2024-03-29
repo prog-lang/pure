@@ -54,6 +54,9 @@ library
       TypeChecker.TIProg
       TypeChecker.Type
       TypeChecker.Unify
+      TypeSystem.Base
+      TypeSystem.Subst
+      TypeSystem.Unify
   other-modules:
       Paths_purist
   autogen-modules:
