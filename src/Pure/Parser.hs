@@ -3,6 +3,7 @@
 
 module Pure.Parser (parseModule) where
 
+import Data.Char (isLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
@@ -107,10 +108,16 @@ typeDefP = do
   name <- nameP
   params <- many nameP
   _ <- reservedP S.is >> barP
-  cons <- sepBy1 typeP barP
+  cons <- sepBy1 typeConsP barP
   return $ TypeDef name params cons
   where
     barP = reservedOp parser [S.bar]
+
+typeConsP :: Parser Type
+typeConsP = do
+  tag <- upperNameP
+  params <- many typeLiteralP
+  return $ Type tag params
 
 typeP :: Parser Type
 typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP
@@ -213,6 +220,11 @@ boolP = (symbolP S.true <|> symbolP S.false) <&> read !> Bool
 
 reservedP :: String -> Parser ()
 reservedP = reserved parser
+
+upperNameP :: Parser Id
+upperNameP = do
+  name <- nameP
+  if isLower $ head name then fail "an uppercase identifier" else return name
 
 nameP :: Parser Id
 nameP = identifier parser
