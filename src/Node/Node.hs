@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Node
+module Node.Node
   ( Module (..),
     Statement (..),
     Expr (..),

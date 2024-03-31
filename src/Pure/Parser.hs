@@ -7,7 +7,7 @@ import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
 import Fun ((!>))
-import Pure (Definition (..), Expr (..), Id, Module (..), Type (..))
+import Pure.AST (Definition (..), Expr (..), Id, Module (..), Type (..))
 import qualified Pure.Sacred as S
 import Result (Result)
 import qualified Result

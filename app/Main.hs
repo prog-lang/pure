@@ -4,7 +4,7 @@ import CLI (Application, Command (..), application, runIO)
 import Convert (Into (..))
 import Data.Version (showVersion)
 import Fun ((!>), (|>))
-import qualified Node
+import qualified Node.Node as Node
 import Node.Transpiler ()
 import Paths_purist (version)
 import Pure.Checks (duplicateDefinitions)

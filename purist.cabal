@@ -28,10 +28,10 @@ library
       CLI
       Convert
       Fun
-      Node
+      Node.Node
       Node.Sacred
       Node.Transpiler
-      Pure
+      Pure.AST
       Pure.Checks
       Pure.Parser
       Pure.Sacred
@@ -55,7 +55,7 @@ library
       TypeChecker.Type
       TypeChecker.Unify
       TypeSystem.Base
-      TypeSystem.Pred
+      TypeSystem.Constraint
       TypeSystem.Subst
       TypeSystem.Unify
   other-modules:

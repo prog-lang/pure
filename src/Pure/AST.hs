@@ -11,7 +11,7 @@
 -- This @Maybe@ type declaration is syntactically correct but we can see that
 -- there is a bunch of unused polymorphic type parameters. We will have to deal
 -- with this later through type checking.
-module Pure
+module Pure.AST
   ( Module (..),
     Id,
     moduleNames,
