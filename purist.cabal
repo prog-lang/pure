@@ -55,6 +55,7 @@ library
       TypeChecker.Type
       TypeChecker.Unify
       TypeSystem.Base
+      TypeSystem.Pred
       TypeSystem.Subst
       TypeSystem.Unify
   other-modules:

@@ -8,6 +8,14 @@ module TypeSystem.Base
     Type (..),
     TypeVar (..),
     TypeCon (..),
+    listT,
+    strT,
+    floatT,
+    intT,
+    boolT,
+    unitT,
+    list,
+    (-->),
   )
 where
 
@@ -80,4 +88,48 @@ instance Show TypeVar where
   show (TypeVar name _) = name
 
 instance Show TypeCon where
-  show (TypeCon name _) = name
+  show (TypeCon name ofKind) = name +-+ show ofKind
+
+--- INSTANCES ------------------------------------------------------------------
+
+-- data Expr
+--   = Lam Id Expr
+--   | If Expr Expr Expr
+--   | App Expr [Expr]
+--   | List [Expr]
+--   | Id Id
+--   | Str String
+--   | Float Double
+--   | Int Integer
+--   | Bool Bool
+
+arrowT :: Type
+arrowT = TCon $ TypeCon "(->)" $ makeKind 2
+
+listT :: Type
+listT = TCon $ TypeCon "[]" $ makeKind 1
+
+strT :: Type
+strT = TCon $ TypeCon "Str" Star
+
+floatT :: Type
+floatT = TCon $ TypeCon "Float" Star
+
+intT :: Type
+intT = TCon $ TypeCon "Int" Star
+
+boolT :: Type
+boolT = TCon $ TypeCon "Bool" Star
+
+unitT :: Type
+unitT = TCon $ TypeCon "Unit" Star
+
+--- COMBINATORS ----------------------------------------------------------------
+
+list :: Type -> Type
+list = TApp listT
+
+infixr 1 -->
+
+(-->) :: Type -> Type -> Type
+t1 --> t2 = TApp (TApp arrowT t1) t2
