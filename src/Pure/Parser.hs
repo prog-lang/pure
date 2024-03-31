@@ -48,7 +48,7 @@ unwrapExports (Export ids) = ids
 unwrapExports _ = []
 
 allExports :: [Statement] -> [Id]
-allExports = concat . map unwrapExports
+allExports = concatMap unwrapExports
 
 toDefinition :: Statement -> Maybe Definition
 toDefinition (Def def) = Just def
@@ -100,7 +100,7 @@ exportP :: Parser Statement
 exportP = Export <$> (reservedP S.export *> parensP (sepBy nameP $ lexemeP $ char S.comma))
 
 definitionP :: Parser Statement
-definitionP = Def <$> (typeDefP <|> defP)
+definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
 
 typeDefP :: Parser Definition
 typeDefP = do
@@ -113,6 +113,13 @@ typeDefP = do
   where
     barP = reservedOp parser [S.bar]
 
+typeHintP :: Parser Definition
+typeHintP = do
+  name <- nameP
+  _ <- reservedOp parser S.typed
+  ty <- typeP
+  return $ TypeHint name ty
+
 typeConsP :: Parser Type
 typeConsP = do
   tag <- upperNameP
@@ -120,7 +127,7 @@ typeConsP = do
   return $ Type tag params
 
 typeP :: Parser Type
-typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP
+typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP <?> "a type"
 
 typeFunctionP :: Parser Type
 typeFunctionP = do
@@ -138,7 +145,7 @@ taggedTypeP = do
   return $ Type tag params
 
 typeLiteralP :: Parser Type
-typeLiteralP = try (parensP typeP) <|> justTagTypeP
+typeLiteralP = try (parensP typeP) <|> justTagTypeP <?> "a type literal"
 
 justTagTypeP :: Parser Type
 justTagTypeP = nameP <&> flip Type []
@@ -147,7 +154,7 @@ defP :: Parser Definition
 defP = do
   name <- nameP
   _ <- reservedOp parser S.walrus
-  expr <- lexemeP exprP
+  expr <- exprP
   return $ name := expr
 
 exprP :: Parser Expr

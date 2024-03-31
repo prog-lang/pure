@@ -40,10 +40,13 @@ false = show False
 -- SIGNS -----------------------------------------------------------------------
 
 operators :: [String]
-operators = [walrus, arrow]
+operators = [walrus, arrow, typed, str minus]
 
 walrus :: String
 walrus = ":="
+
+typed :: String
+typed = "::"
 
 arrow :: String
 arrow = "->"

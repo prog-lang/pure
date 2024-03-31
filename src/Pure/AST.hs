@@ -48,6 +48,7 @@ data Module = Module
 data Definition
   = Id := Expr -- main := 42;
   | TypeDef Id [Id] [Type] -- type Maybe a is | Just a | Nothing;
+  | TypeHint Id Type -- main :: List Str -> IO Unit;
 
 data Expr
   = Lam Id Expr
@@ -69,6 +70,7 @@ moduleNames (Module defs _) = map defName defs
 defName :: Definition -> Id
 defName (name := _) = name
 defName (TypeDef name _ _) = name
+defName (TypeHint name _) = name
 
 -- SHOW ------------------------------------------------------------------------
 
@@ -86,6 +88,7 @@ instance Show Definition where
       +-+ S.is
       +\+ unlines (map ((S.str S.bar +-+) . show) cons)
       ++ S.str S.semicolon
+  show (TypeHint name ty) = name +-+ S.typed +-+ show ty
 
 instance Parens Type where
   parens this@(Type _ []) = show this
