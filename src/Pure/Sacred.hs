@@ -5,7 +5,7 @@ module Pure.Sacred where
 import Data.List (singleton)
 import qualified Data.List as List
 
--- KEYWORDS
+-- KEYWORDS --------------------------------------------------------------------
 
 isKeyword :: String -> Bool
 isKeyword = flip List.elem keywords
@@ -37,7 +37,7 @@ true = show True
 false :: String
 false = show False
 
--- SIGNS
+-- SIGNS -----------------------------------------------------------------------
 
 operators :: [String]
 operators = [walrus, arrow]
@@ -78,7 +78,7 @@ minus = '-'
 bar :: Char
 bar = '|'
 
--- UTILS
+-- UTILS -----------------------------------------------------------------------
 
 str :: Char -> String
 str = singleton

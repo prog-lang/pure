@@ -20,7 +20,7 @@ import Strings
   )
 import System.Environment (getArgs)
 
--- TYPES
+-- TYPES -----------------------------------------------------------------------
 
 data Application = Application
   { name :: String,
@@ -39,7 +39,7 @@ data Command
     action :: Application -> IO ()
   }
 
--- CONSTRUCT
+-- CONSTRUCT -------------------------------------------------------------------
 
 application ::
   String ->
@@ -77,7 +77,7 @@ versionCommand =
       action = putStrLn . overview
     }
 
--- INSPECT COMMAND
+-- INSPECT COMMAND -------------------------------------------------------------
 
 nameAndDescription :: Command -> String
 nameAndDescription (Command long (Just short) hint _) =
@@ -89,7 +89,7 @@ namesAndActions command = (longName command, action command) : shortOption
   where
     shortOption = maybe [] (\c -> [(singleton c, action command)]) (shortName command)
 
--- INSPECT APPLICATION
+-- INSPECT APPLICATION ---------------------------------------------------------
 
 help :: Application -> String
 help app =
@@ -106,7 +106,7 @@ overview app = nameAndVersion app +-+ "-" +-+ purpose app
 nameAndVersion :: Application -> String
 nameAndVersion app = name app +-+ version app
 
--- RUN APPLICATION
+-- RUN APPLICATION -------------------------------------------------------------
 
 runIO :: Application -> IO ()
 runIO app = getArgs >>= run app

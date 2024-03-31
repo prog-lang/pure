@@ -38,7 +38,7 @@ import Text.Parsec.Token
     makeTokenParser,
   )
 
--- STATEMENT
+-- STATEMENT -------------------------------------------------------------------
 
 data Statement = Export [Id] | Def Definition
 
@@ -60,7 +60,7 @@ instance Show Statement where
   show (Export ids) = S.export +-+ parenthesised (commad ids) ++ S.str S.semicolon
   show (Def def) = show def
 
--- PARSER
+-- PARSER ----------------------------------------------------------------------
 
 language :: (Monad m) => GenLanguageDef String u m
 language =
@@ -113,13 +113,28 @@ typeDefP = do
     barP = reservedOp parser [S.bar]
 
 typeP :: Parser Type
-typeP = do
+typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP
+
+typeFunctionP :: Parser Type
+typeFunctionP = do
+  t <- fromTypeP <* reservedOp parser S.arrow
+  r <- typeP
+  return $ Func t r
+
+fromTypeP :: Parser Type
+fromTypeP = try taggedTypeP <|> typeLiteralP
+
+taggedTypeP :: Parser Type
+taggedTypeP = do
   tag <- nameP
-  params <- many typeParamP
+  params <- many typeLiteralP
   return $ Type tag params
 
-typeParamP :: Parser Type
-typeParamP = try (parensP typeP) <|> (nameP <&> flip Type [])
+typeLiteralP :: Parser Type
+typeLiteralP = try (parensP typeP) <|> justTagTypeP
+
+justTagTypeP :: Parser Type
+justTagTypeP = nameP <&> flip Type []
 
 defP :: Parser Definition
 defP = do

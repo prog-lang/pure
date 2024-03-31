@@ -32,17 +32,13 @@ import Strings
     (+\+),
   )
 
--- TYPES
+-- TYPES -----------------------------------------------------------------------
 
-data Type = Type Id [Type]
+type Id = String
 
-instance Parens Type where
-  parens this@(Type _ []) = show this
-  parens t = parenthesised $ show t
-
-instance Show Type where
-  show (Type tag []) = tag
-  show (Type tag args) = tag +-+ unwords (map parens args)
+data Type
+  = Func Type Type
+  | Type Id [Type]
 
 data Module = Module
   { definitions :: [Definition],
@@ -52,8 +48,6 @@ data Module = Module
 data Definition
   = Id := Expr -- main := 42;
   | TypeDef Id [Id] [Type] -- type Maybe a is | Just a | Nothing;
-
-type Id = String
 
 data Expr
   = Lam Id Expr
@@ -67,7 +61,7 @@ data Expr
   | Bool Bool
   deriving (Eq)
 
--- INSPECT
+-- INSPECT ---------------------------------------------------------------------
 
 moduleNames :: Module -> [Id]
 moduleNames (Module defs _) = map defName defs
@@ -76,7 +70,7 @@ defName :: Definition -> Id
 defName (name := _) = name
 defName (TypeDef name _ _) = name
 
--- SHOW
+-- SHOW ------------------------------------------------------------------------
 
 instance Show Module where
   show (Module defs es) = unlines $ export : map show defs
@@ -93,6 +87,15 @@ instance Show Definition where
       +\+ unlines (map ((S.str S.bar +-+) . show) cons)
       ++ S.str S.semicolon
 
+instance Parens Type where
+  parens this@(Type _ []) = show this
+  parens t = parenthesised $ show t
+
+instance Show Type where
+  show (Func a b) = show a +-+ S.arrow +-+ show b
+  show (Type tag []) = tag
+  show (Type tag args) = tag +-+ unwords (map parens args)
+
 instance Show Expr where
   show (Bool bool) = show bool
   show (Int int) = show int
@@ -104,7 +107,7 @@ instance Show Expr where
   show (If x y z) = S.if_ +-+ show x +-+ S.then_ +-+ show y +-+ S.else_ +-+ show z
   show (Lam p ex) = p +-+ S.arrow +-+ show ex
 
--- PARENS
+-- PARENS ----------------------------------------------------------------------
 
 instance Parens Expr where
   parens i@(Int _) = show i

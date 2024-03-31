@@ -12,7 +12,7 @@ where
 
 data Result err ok = Ok ok | Err err deriving (Show, Eq)
 
--- IMPLEMENT
+-- IMPLEMENT -------------------------------------------------------------------
 
 instance Functor (Result err) where
   fmap :: (a -> b) -> Result err a -> Result err b
@@ -37,19 +37,19 @@ instance MonadFail (Result String) where
   fail :: String -> Result String a
   fail = Err
 
--- CONSTRUCT
+-- CONSTRUCT -------------------------------------------------------------------
 
 fromEither :: Either err ok -> Result err ok
 fromEither (Left err) = Err err
 fromEither (Right ok) = Ok ok
 
--- DECONSTRUCT
+-- DECONSTRUCT -----------------------------------------------------------------
 
 unwrap :: Result a a -> a
 unwrap (Err err) = err
 unwrap (Ok ok) = ok
 
--- MODIFY
+-- MODIFY ----------------------------------------------------------------------
 
 mapErr :: (err -> err') -> Result err ok -> Result err' ok
 mapErr _ (Ok ok) = Ok ok

@@ -4,11 +4,11 @@ import Data.List (intercalate, nub, (\\))
 import Pure.AST (Module (..), moduleNames)
 import Result (Result (..))
 
--- TYPES
+-- TYPES -----------------------------------------------------------------------
 
 type Error = String
 
--- CHECKS
+-- CHECKS ----------------------------------------------------------------------
 
 duplicateDefinitions :: Module -> Result Error Module
 duplicateDefinitions ast =
