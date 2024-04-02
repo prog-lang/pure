@@ -15,6 +15,9 @@ module Pure.AST
   ( Module (..),
     Id,
     moduleNames,
+    assignmentNames,
+    typeHintNames,
+    typeDefNames,
     Definition (..),
     defName,
     Type (..),
@@ -67,10 +70,31 @@ data Expr
 moduleNames :: Module -> [Id]
 moduleNames (Module defs _) = map defName defs
 
+assignmentNames :: Module -> [Id]
+assignmentNames = map defName . filter isAssignment . definitions
+
+typeHintNames :: Module -> [Id]
+typeHintNames = map defName . filter isTypeHint . definitions
+
+typeDefNames :: Module -> [Id]
+typeDefNames = map defName . filter isTypeDef . definitions
+
 defName :: Definition -> Id
 defName (name := _) = name
 defName (TypeDef name _ _) = name
 defName (TypeHint name _) = name
+
+isTypeDef :: Definition -> Bool
+isTypeDef (TypeDef {}) = True
+isTypeDef _ = False
+
+isAssignment :: Definition -> Bool
+isAssignment (_ := _) = True
+isAssignment _ = False
+
+isTypeHint :: Definition -> Bool
+isTypeHint (TypeHint _ _) = True
+isTypeHint _ = False
 
 -- SHOW ------------------------------------------------------------------------
 
@@ -88,7 +112,7 @@ instance Show Definition where
       +-+ S.is
       +\+ unlines (map ((S.str S.bar +-+) . show) cons)
       ++ S.str S.semicolon
-  show (TypeHint name ty) = name +-+ S.typed +-+ show ty
+  show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ S.str S.semicolon
 
 instance Parens Type where
   parens this@(Type _ []) = show this

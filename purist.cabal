@@ -37,23 +37,6 @@ library
       Pure.Sacred
       Result
       Strings
-      TypeChecker.Assump
-      TypeChecker.Id
-      TypeChecker.Infer
-      TypeChecker.Kind
-      TypeChecker.Lit
-      TypeChecker.Pat
-      TypeChecker.PPrint
-      TypeChecker.Pred
-      TypeChecker.Scheme
-      TypeChecker.Static
-      TypeChecker.StaticPrelude
-      TypeChecker.Subst
-      TypeChecker.TIMain
-      TypeChecker.TIMonad
-      TypeChecker.TIProg
-      TypeChecker.Type
-      TypeChecker.Unify
       TypeSystem.Base
       TypeSystem.Constraint
       TypeSystem.Subst

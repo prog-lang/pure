@@ -7,7 +7,7 @@ import Fun ((!>), (|>))
 import qualified Node.Node as Node
 import Node.Transpiler ()
 import Paths_purist (version)
-import Pure.Checks (duplicateDefinitions)
+import Pure.Checks (afterParse)
 import Pure.Parser (parseModule)
 import Result (Result (..), (<!>))
 import System.IO (hPutStrLn, stderr)
@@ -41,5 +41,5 @@ transpile :: String -> Result String Node.Module
 transpile input =
   parseModule "main.pure" input
     <!> show
-    >>= duplicateDefinitions
+    >>= afterParse
       |> into
