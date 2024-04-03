@@ -9,8 +9,8 @@ module Node.Transpiler where
 import Convert (Into (..))
 import Data.List (singleton)
 import qualified Node.Node as Node
-import Pure.AST (Definition ((:=)))
-import qualified Pure.AST as Pure
+import Pure.Parser (Definition ((:=)))
+import qualified Pure.Parser as Pure
 import Strings (numbered)
 
 type Error = String

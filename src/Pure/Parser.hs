@@ -1,18 +1,32 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# HLINT ignore "Use <$>" #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-module Pure.Parser (parseModule) where
+module Pure.Parser
+  ( Module (..),
+    Id,
+    moduleNames,
+    assignmentNames,
+    typeHintNames,
+    typeDefNames,
+    Definition (..),
+    defName,
+    Type (..),
+    Expr (..),
+    parseModule,
+  )
+where
 
 import Data.Char (isLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
 import Fun ((!>))
-import Pure.AST (Definition (..), Expr (..), Id, Module (..), Type (..))
 import qualified Pure.Sacred as S
 import Result (Result)
 import qualified Result
-import Strings (commad, parenthesised, (+-+))
+import Strings (Parens (), commad, list, parenthesised, tuple, (+-+), (+\+))
+import qualified Strings
 import Text.Parsec
   ( ParseError,
     SourceName,
@@ -38,6 +52,115 @@ import Text.Parsec.Token
     GenTokenParser (..),
     makeTokenParser,
   )
+
+-- TYPES -----------------------------------------------------------------------
+
+type Id = String
+
+data Type
+  = Func Type Type
+  | Type Id [Type]
+
+data Module = Module
+  { definitions :: [Definition],
+    exports :: [Id]
+  }
+
+data Definition
+  = Id := Expr -- main := 42;
+  | TypeDef Id [Id] [Type] -- type Maybe a is | Just a | Nothing;
+  | TypeHint Id Type -- main :: List Str -> IO Unit;
+
+data Expr
+  = Lam Id Expr
+  | If Expr Expr Expr
+  | App Expr [Expr]
+  | List [Expr]
+  | Id Id
+  | Str String
+  | Float Double
+  | Int Integer
+  | Bool Bool
+  deriving (Eq)
+
+-- INSPECT ---------------------------------------------------------------------
+
+moduleNames :: Module -> [Id]
+moduleNames (Module defs _) = map defName defs
+
+assignmentNames :: Module -> [Id]
+assignmentNames = map defName . filter isAssignment . definitions
+
+typeHintNames :: Module -> [Id]
+typeHintNames = map defName . filter isTypeHint . definitions
+
+typeDefNames :: Module -> [Id]
+typeDefNames = map defName . filter isTypeDef . definitions
+
+defName :: Definition -> Id
+defName (name := _) = name
+defName (TypeDef name _ _) = name
+defName (TypeHint name _) = name
+
+isTypeDef :: Definition -> Bool
+isTypeDef (TypeDef {}) = True
+isTypeDef _ = False
+
+isAssignment :: Definition -> Bool
+isAssignment (_ := _) = True
+isAssignment _ = False
+
+isTypeHint :: Definition -> Bool
+isTypeHint (TypeHint _ _) = True
+isTypeHint _ = False
+
+-- SHOW ------------------------------------------------------------------------
+
+instance Show Module where
+  show (Module defs es) = unlines $ export : map show defs
+    where
+      export = S.export +-+ tuple es ++ S.str S.semicolon
+
+instance Show Definition where
+  show (name := expr) = name +-+ S.walrus +-+ show expr ++ S.str S.semicolon
+  show (TypeDef name poly cons) =
+    S.type_
+      +-+ name
+      +-+ unwords poly
+      +-+ S.is
+      +\+ unlines (map ((S.str S.bar +-+) . show) cons)
+      ++ S.str S.semicolon
+  show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ S.str S.semicolon
+
+instance Parens Type where
+  parens this@(Type _ []) = show this
+  parens t = parenthesised $ show t
+
+instance Show Type where
+  show (Func a b) = show a +-+ S.arrow +-+ show b
+  show (Type tag []) = tag
+  show (Type tag args) = tag +-+ unwords (map Strings.parens args)
+
+instance Show Expr where
+  show (Bool bool) = show bool
+  show (Int int) = show int
+  show (Float number) = show number
+  show (Str str) = show str
+  show (Id ident) = ident
+  show (List l) = list (map show l)
+  show (App ex exs) = unwords $ map Strings.parens (ex : exs)
+  show (If x y z) = S.if_ +-+ show x +-+ S.then_ +-+ show y +-+ S.else_ +-+ show z
+  show (Lam p ex) = p +-+ S.arrow +-+ show ex
+
+-- PARENS ----------------------------------------------------------------------
+
+instance Parens Expr where
+  parens i@(Int _) = show i
+  parens f@(Float _) = show f
+  parens s@(Str _) = show s
+  parens i@(Id _) = show i
+  parens l@(List _) = show l
+  parens ex = parenthesised $ show ex
 
 -- STATEMENT -------------------------------------------------------------------
 

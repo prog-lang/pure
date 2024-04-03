@@ -31,7 +31,6 @@ library
       Node.Node
       Node.Sacred
       Node.Transpiler
-      Pure.AST
       Pure.Checks
       Pure.Parser
       Pure.Sacred

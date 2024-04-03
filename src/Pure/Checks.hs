@@ -7,7 +7,7 @@ where
 import Data.Foldable (toList)
 import Data.List (nub, (\\))
 import qualified Data.Set as Set
-import Pure.AST
+import Pure.Parser
   ( Module (..),
     assignmentNames,
     moduleNames,
