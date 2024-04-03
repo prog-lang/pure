@@ -31,11 +31,13 @@ library
       Node.Transpiler
       Pure.Checks
       Pure.Parser
+      Pure.PreType
       Pure.Sacred
-      TypeSystem.Base
-      TypeSystem.Constraint
-      TypeSystem.Subst
-      TypeSystem.Unify
+      Pure.TypeSystem.Base
+      Pure.TypeSystem.Constraint
+      Pure.TypeSystem.Subst
+      Pure.TypeSystem.Unify
+      Utility.Common
       Utility.Convert
       Utility.Fun
       Utility.Result

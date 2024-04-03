@@ -1,4 +1,4 @@
-module TypeSystem.Subst
+module Pure.TypeSystem.Subst
   ( Subst,
     conserve,
     (+->),
@@ -10,7 +10,7 @@ where
 
 import Data.List (intersect, nub, union)
 import Data.Maybe (fromMaybe)
-import TypeSystem.Base (Type (TApp, TVar), TypeVar)
+import Pure.TypeSystem.Base (Type (TApp, TVar), TypeVar)
 
 --- SUBSTITUTION ---------------------------------------------------------------
 

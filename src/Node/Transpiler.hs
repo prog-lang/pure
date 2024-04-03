@@ -8,7 +8,7 @@ module Node.Transpiler where
 
 import Data.List (singleton)
 import qualified Node.Node as Node
-import Pure.Parser (Definition ((:=)))
+import Pure.Parser (Definition (ValueDef))
 import qualified Pure.Parser as Pure
 import Utility.Convert (Into (..))
 import Utility.Strings (numbered)
@@ -26,8 +26,8 @@ instance Into Pure.Module Node.Module where
 
 -- Pure.TypeDefs map to multiple Node.Statements
 instance Into Pure.Definition [Node.Statement] where
-  into (name := (Pure.Lam param expr)) = singleton $ Node.Function name [param] [Node.Return $ into expr]
-  into (name := expr) = singleton $ Node.Const name $ into expr
+  into (ValueDef name (Pure.Lam param expr)) = singleton $ Node.Function name [param] [Node.Return $ into expr]
+  into (ValueDef name expr) = singleton $ Node.Const name $ into expr
   into (Pure.TypeDef ty _ opts) = map typeConsStatement opts
     where
       typeConsStatement opt@(Pure.Type tag _) = Node.Const tag $ typeCons opt

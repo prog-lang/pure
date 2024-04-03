@@ -1,8 +1,8 @@
-module TypeSystem.Unify (Unify (..), Match (..)) where
+module Pure.TypeSystem.Unify (Unify (..), Match (..)) where
 
 import Control.Monad (foldM, zipWithM)
-import TypeSystem.Base (HasKind (kind), Type (TApp, TCon, TVar), TypeVar)
-import TypeSystem.Subst (Subst, Typed (..), conserve, merge, (+->), (@@))
+import Pure.TypeSystem.Base (HasKind (kind), Type (TApp, TCon, TVar), TypeVar)
+import Pure.TypeSystem.Subst (Subst, Typed (..), conserve, merge, (+->), (@@))
 
 --- UNIFY ----------------------------------------------------------------------
 

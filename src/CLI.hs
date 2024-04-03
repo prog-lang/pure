@@ -9,8 +9,8 @@ module CLI
 where
 
 import Data.List (singleton)
-import Data.Map (Map, (!))
-import qualified Data.Map as Map
+import Data.Map.Strict (Map, (!))
+import qualified Data.Map.Strict as Map
 import System.Environment (getArgs)
 import Utility.Strings
   ( parenthesised,

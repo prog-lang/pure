@@ -10,8 +10,9 @@ module Pure.Parser
     typeHintNames,
     typeDefNames,
     Definition (..),
+    isTypeDef,
     defName,
-    Type (..),
+    TypeHint (..),
     Expr (..),
     parseModule,
   )
@@ -47,6 +48,7 @@ import Text.Parsec.Token
     GenTokenParser (..),
     makeTokenParser,
   )
+import Utility.Common (Id)
 import Utility.Fun ((!>))
 import Utility.Result (Result)
 import qualified Utility.Result as Result
@@ -55,11 +57,9 @@ import qualified Utility.Strings as Strings
 
 -- TYPES -----------------------------------------------------------------------
 
-type Id = String
-
-data Type
-  = Func Type Type
-  | Type Id [Type]
+data TypeHint
+  = Func TypeHint TypeHint
+  | Type Id [TypeHint]
 
 data Module = Module
   { definitions :: [Definition],
@@ -67,9 +67,9 @@ data Module = Module
   }
 
 data Definition
-  = Id := Expr -- main := 42;
-  | TypeDef Id [Id] [Type] -- type Maybe a is | Just a | Nothing;
-  | TypeHint Id Type -- main :: List Str -> IO Unit;
+  = ValueDef Id Expr -- main := 42;
+  | TypeDef Id [Id] [TypeHint] -- type Maybe a is | Just a | Nothing;
+  | TypeHint Id TypeHint -- main :: List Str -> IO Unit;
 
 data Expr
   = Lam Id Expr
@@ -98,7 +98,7 @@ typeDefNames :: Module -> [Id]
 typeDefNames = map defName . filter isTypeDef . definitions
 
 defName :: Definition -> Id
-defName (name := _) = name
+defName (ValueDef name _) = name
 defName (TypeDef name _ _) = name
 defName (TypeHint name _) = name
 
@@ -107,7 +107,7 @@ isTypeDef (TypeDef {}) = True
 isTypeDef _ = False
 
 isAssignment :: Definition -> Bool
-isAssignment (_ := _) = True
+isAssignment (ValueDef {}) = True
 isAssignment _ = False
 
 isTypeHint :: Definition -> Bool
@@ -122,7 +122,7 @@ instance Show Module where
       export = S.export +-+ tuple es ++ S.str S.semicolon
 
 instance Show Definition where
-  show (name := expr) = name +-+ S.walrus +-+ show expr ++ S.str S.semicolon
+  show (ValueDef name expr) = name +-+ S.walrus +-+ show expr ++ S.str S.semicolon
   show (TypeDef name poly cons) =
     S.type_
       +-+ name
@@ -132,11 +132,11 @@ instance Show Definition where
       ++ S.str S.semicolon
   show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ S.str S.semicolon
 
-instance Parens Type where
+instance Parens TypeHint where
   parens this@(Type _ []) = show this
   parens t = parenthesised $ show t
 
-instance Show Type where
+instance Show TypeHint where
   show (Func a b) = show a +-+ S.arrow +-+ show b
   show (Type tag []) = tag
   show (Type tag args) = tag +-+ unwords (map Strings.parens args)
@@ -243,34 +243,34 @@ typeHintP = do
   ty <- typeP
   return $ TypeHint name ty
 
-typeConsP :: Parser Type
+typeConsP :: Parser TypeHint
 typeConsP = do
   tag <- upperNameP
   params <- many typeLiteralP
   return $ Type tag params
 
-typeP :: Parser Type
+typeP :: Parser TypeHint
 typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP <?> "a type"
 
-typeFunctionP :: Parser Type
+typeFunctionP :: Parser TypeHint
 typeFunctionP = do
   t <- fromTypeP <* reservedOp parser S.arrow
   r <- typeP
   return $ Func t r
 
-fromTypeP :: Parser Type
+fromTypeP :: Parser TypeHint
 fromTypeP = try taggedTypeP <|> typeLiteralP
 
-taggedTypeP :: Parser Type
+taggedTypeP :: Parser TypeHint
 taggedTypeP = do
   tag <- nameP
   params <- many typeLiteralP
   return $ Type tag params
 
-typeLiteralP :: Parser Type
+typeLiteralP :: Parser TypeHint
 typeLiteralP = try (parensP typeP) <|> justTagTypeP <?> "a type literal"
 
-justTagTypeP :: Parser Type
+justTagTypeP :: Parser TypeHint
 justTagTypeP = nameP <&> flip Type []
 
 defP :: Parser Definition
@@ -278,7 +278,7 @@ defP = do
   name <- nameP
   _ <- reservedOp parser S.walrus
   expr <- exprP
-  return $ name := expr
+  return $ ValueDef name expr
 
 exprP :: Parser Expr
 exprP = ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"

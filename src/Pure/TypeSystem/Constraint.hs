@@ -1,19 +1,19 @@
-module TypeSystem.Constraint where
+module Pure.TypeSystem.Constraint where
 
 import Control.Monad (msum)
 import Data.HashMap.Strict (HashMap, insert)
 import qualified Data.HashMap.Strict as HashMap
 import Data.List (union)
 import Data.Maybe (isJust)
-import TypeSystem.Base
+import Pure.TypeSystem.Base
   ( Id,
     Type (..),
     TypeVar (..),
     floatT,
     intT,
   )
-import TypeSystem.Subst (Typed (..))
-import TypeSystem.Unify (Match (..), Unify (..))
+import Pure.TypeSystem.Subst (Typed (..))
+import Pure.TypeSystem.Unify (Match (..), Unify (..))
 import Prelude hiding (lookup)
 
 --- QUALIFIED ------------------------------------------------------------------

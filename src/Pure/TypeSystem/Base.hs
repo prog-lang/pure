@@ -1,4 +1,4 @@
-module TypeSystem.Base
+module Pure.TypeSystem.Base
   ( Id,
     makeId,
     makeGen,
@@ -19,11 +19,10 @@ module TypeSystem.Base
   )
 where
 
+import Utility.Common (Id)
 import Utility.Strings ((+-+))
 
 --- ID -------------------------------------------------------------------------
-
-type Id = String
 
 makeId :: Int -> Id
 makeId = ("$" ++) . show
