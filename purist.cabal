@@ -26,20 +26,20 @@ source-repository head
 library
   exposed-modules:
       CLI
-      Convert
-      Fun
       Node.Node
       Node.Sacred
       Node.Transpiler
       Pure.Checks
       Pure.Parser
       Pure.Sacred
-      Result
-      Strings
       TypeSystem.Base
       TypeSystem.Constraint
       TypeSystem.Subst
       TypeSystem.Unify
+      Utility.Convert
+      Utility.Fun
+      Utility.Result
+      Utility.Strings
   other-modules:
       Paths_purist
   autogen-modules:

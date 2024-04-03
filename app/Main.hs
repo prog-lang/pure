@@ -1,16 +1,16 @@
 module Main (main) where
 
 import CLI (Application, Command (..), application, runIO)
-import Convert (Into (..))
 import Data.Version (showVersion)
-import Fun ((!>), (|>))
 import qualified Node.Node as Node
 import Node.Transpiler ()
 import Paths_purist (version)
 import Pure.Checks (afterParse)
 import Pure.Parser (parseModule)
-import Result (Result (..), (<!>))
 import System.IO (hPutStrLn, stderr)
+import Utility.Convert (Into (..))
+import Utility.Fun ((!>), (|>))
+import Utility.Result (Result (..), (<!>))
 
 main :: IO ()
 main = runIO app

@@ -14,8 +14,8 @@ import Pure.Parser
     typeDefNames,
     typeHintNames,
   )
-import Result (Result (..))
-import Strings (commad)
+import Utility.Result (Result (..))
+import Utility.Strings (commad)
 
 -- TYPES -----------------------------------------------------------------------
 

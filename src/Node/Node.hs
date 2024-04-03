@@ -10,7 +10,7 @@ module Node.Node
 where
 
 import qualified Node.Sacred as S
-import Strings (array, braced, commad, list, parenthesised, tuple, (+-+))
+import Utility.Strings (array, braced, commad, list, parenthesised, tuple, (+-+))
 
 -- TYPES -----------------------------------------------------------------------
 

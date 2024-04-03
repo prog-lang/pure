@@ -19,7 +19,7 @@ module TypeSystem.Base
   )
 where
 
-import Strings ((+-+))
+import Utility.Strings ((+-+))
 
 --- ID -------------------------------------------------------------------------
 

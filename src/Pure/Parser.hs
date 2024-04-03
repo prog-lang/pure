@@ -21,12 +21,7 @@ import Data.Char (isLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
-import Fun ((!>))
 import qualified Pure.Sacred as S
-import Result (Result)
-import qualified Result
-import Strings (Parens (), commad, list, parenthesised, tuple, (+-+), (+\+))
-import qualified Strings
 import Text.Parsec
   ( ParseError,
     SourceName,
@@ -52,6 +47,11 @@ import Text.Parsec.Token
     GenTokenParser (..),
     makeTokenParser,
   )
+import Utility.Fun ((!>))
+import Utility.Result (Result)
+import qualified Utility.Result as Result
+import Utility.Strings (Parens (), commad, list, parenthesised, tuple, (+-+), (+\+))
+import qualified Utility.Strings as Strings
 
 -- TYPES -----------------------------------------------------------------------
 

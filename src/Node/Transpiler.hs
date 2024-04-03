@@ -6,12 +6,12 @@
 
 module Node.Transpiler where
 
-import Convert (Into (..))
 import Data.List (singleton)
 import qualified Node.Node as Node
 import Pure.Parser (Definition ((:=)))
 import qualified Pure.Parser as Pure
-import Strings (numbered)
+import Utility.Convert (Into (..))
+import Utility.Strings (numbered)
 
 type Error = String
 

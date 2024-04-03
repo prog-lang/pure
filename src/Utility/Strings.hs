@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 
-module Strings
+module Utility.Strings
   ( commad,
     parenthesised,
     braced,
@@ -22,7 +22,7 @@ where
 
 import Data.Char (isSpace)
 import Data.List (intercalate)
-import Fun ((!>))
+import Utility.Fun ((!>))
 
 class Parens a where
   parens :: a -> String

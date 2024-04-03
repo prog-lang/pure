@@ -11,14 +11,14 @@ where
 import Data.List (singleton)
 import Data.Map (Map, (!))
 import qualified Data.Map as Map
-import Strings
+import System.Environment (getArgs)
+import Utility.Strings
   ( parenthesised,
     ul,
     (+-+),
     (+\+),
     (+\\+),
   )
-import System.Environment (getArgs)
 
 -- TYPES -----------------------------------------------------------------------
 

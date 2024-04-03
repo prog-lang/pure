@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Result
+module Utility.Result
   ( Result (..),
     fromEither,
     unwrap,
