@@ -9,10 +9,9 @@ module Pure.Parser
     assignmentNames,
     typeHintNames,
     typeDefNames,
-    Definition (..),
+    Def (..),
     isTypeDef,
     defName,
-    TypeHint (..),
     Expr (..),
     parseModule,
   )
@@ -22,7 +21,9 @@ import Data.Char (isLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
+import Pure.Expr (Expr (..))
 import qualified Pure.Sacred as S
+import Pure.Typing.Type (Type (..))
 import Text.Parsec
   ( ParseError,
     SourceName,
@@ -52,36 +53,19 @@ import Utility.Common (Id)
 import Utility.Fun ((!>))
 import Utility.Result (Result)
 import qualified Utility.Result as Result
-import Utility.Strings (Parens (), commad, list, parenthesised, tuple, (+-+), (+\+))
-import qualified Utility.Strings as Strings
+import Utility.Strings (commad, parenthesised, tuple, (+-+), (+\+))
 
 -- TYPES -----------------------------------------------------------------------
 
-data TypeHint
-  = Func TypeHint TypeHint
-  | Type Id [TypeHint]
-
 data Module = Module
-  { definitions :: [Definition],
+  { definitions :: [Def],
     exports :: [Id]
   }
 
-data Definition
+data Def
   = ValueDef Id Expr -- main := 42;
-  | TypeDef Id [Id] [TypeHint] -- type Maybe a is | Just a | Nothing;
-  | TypeHint Id TypeHint -- main :: List Str -> IO Unit;
-
-data Expr
-  = Lam Id Expr
-  | If Expr Expr Expr
-  | App Expr [Expr]
-  | List [Expr]
-  | Id Id
-  | Str String
-  | Float Double
-  | Int Integer
-  | Bool Bool
-  deriving (Eq)
+  | TypeDef Id [Id] [Type] -- type Maybe a is | Just a | Nothing;
+  | TypeHint Id Type -- main :: List Str -> IO Unit;
 
 -- INSPECT ---------------------------------------------------------------------
 
@@ -97,20 +81,20 @@ typeHintNames = map defName . filter isTypeHint . definitions
 typeDefNames :: Module -> [Id]
 typeDefNames = map defName . filter isTypeDef . definitions
 
-defName :: Definition -> Id
+defName :: Def -> Id
 defName (ValueDef name _) = name
 defName (TypeDef name _ _) = name
 defName (TypeHint name _) = name
 
-isTypeDef :: Definition -> Bool
+isTypeDef :: Def -> Bool
 isTypeDef (TypeDef {}) = True
 isTypeDef _ = False
 
-isAssignment :: Definition -> Bool
+isAssignment :: Def -> Bool
 isAssignment (ValueDef {}) = True
 isAssignment _ = False
 
-isTypeHint :: Definition -> Bool
+isTypeHint :: Def -> Bool
 isTypeHint (TypeHint _ _) = True
 isTypeHint _ = False
 
@@ -121,7 +105,7 @@ instance Show Module where
     where
       export = S.export +-+ tuple es ++ S.str S.semicolon
 
-instance Show Definition where
+instance Show Def where
   show (ValueDef name expr) = name +-+ S.walrus +-+ show expr ++ S.str S.semicolon
   show (TypeDef name poly cons) =
     S.type_
@@ -132,39 +116,9 @@ instance Show Definition where
       ++ S.str S.semicolon
   show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ S.str S.semicolon
 
-instance Parens TypeHint where
-  parens this@(Type _ []) = show this
-  parens t = parenthesised $ show t
-
-instance Show TypeHint where
-  show (Func a b) = show a +-+ S.arrow +-+ show b
-  show (Type tag []) = tag
-  show (Type tag args) = tag +-+ unwords (map Strings.parens args)
-
-instance Show Expr where
-  show (Bool bool) = show bool
-  show (Int int) = show int
-  show (Float number) = show number
-  show (Str str) = show str
-  show (Id ident) = ident
-  show (List l) = list (map show l)
-  show (App ex exs) = unwords $ map Strings.parens (ex : exs)
-  show (If x y z) = S.if_ +-+ show x +-+ S.then_ +-+ show y +-+ S.else_ +-+ show z
-  show (Lam p ex) = p +-+ S.arrow +-+ show ex
-
--- PARENS ----------------------------------------------------------------------
-
-instance Parens Expr where
-  parens i@(Int _) = show i
-  parens f@(Float _) = show f
-  parens s@(Str _) = show s
-  parens i@(Id _) = show i
-  parens l@(List _) = show l
-  parens ex = parenthesised $ show ex
-
 -- STATEMENT -------------------------------------------------------------------
 
-data Statement = Export [Id] | Def Definition
+data Statement = Export [Id] | Def Def
 
 unwrapExports :: Statement -> [Id]
 unwrapExports (Export ids) = ids
@@ -173,11 +127,11 @@ unwrapExports _ = []
 allExports :: [Statement] -> [Id]
 allExports = concatMap unwrapExports
 
-toDefinition :: Statement -> Maybe Definition
+toDefinition :: Statement -> Maybe Def
 toDefinition (Def def) = Just def
 toDefinition _ = Nothing
 
-allDefinitions :: [Statement] -> [Definition]
+allDefinitions :: [Statement] -> [Def]
 allDefinitions = mapMaybe toDefinition
 
 instance Show Statement where
@@ -225,7 +179,7 @@ exportP = Export <$> (reservedP S.export *> parensP (sepBy nameP $ lexemeP $ cha
 definitionP :: Parser Statement
 definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
 
-typeDefP :: Parser Definition
+typeDefP :: Parser Def
 typeDefP = do
   _ <- reservedP S.type_
   name <- nameP
@@ -236,44 +190,44 @@ typeDefP = do
   where
     barP = reservedOp parser [S.bar]
 
-typeHintP :: Parser Definition
+typeHintP :: Parser Def
 typeHintP = do
   name <- nameP
   _ <- reservedOp parser S.typed
   ty <- typeP
   return $ TypeHint name ty
 
-typeConsP :: Parser TypeHint
+typeConsP :: Parser Type
 typeConsP = do
   tag <- upperNameP
   params <- many typeLiteralP
-  return $ Type tag params
+  return $ Cons tag params
 
-typeP :: Parser TypeHint
+typeP :: Parser Type
 typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP <?> "a type"
 
-typeFunctionP :: Parser TypeHint
+typeFunctionP :: Parser Type
 typeFunctionP = do
   t <- fromTypeP <* reservedOp parser S.arrow
   r <- typeP
-  return $ Func t r
+  return $ t :-> r
 
-fromTypeP :: Parser TypeHint
+fromTypeP :: Parser Type
 fromTypeP = try taggedTypeP <|> typeLiteralP
 
-taggedTypeP :: Parser TypeHint
+taggedTypeP :: Parser Type
 taggedTypeP = do
   tag <- nameP
   params <- many typeLiteralP
-  return $ Type tag params
+  return $ Cons tag params
 
-typeLiteralP :: Parser TypeHint
+typeLiteralP :: Parser Type
 typeLiteralP = try (parensP typeP) <|> justTagTypeP <?> "a type literal"
 
-justTagTypeP :: Parser TypeHint
-justTagTypeP = nameP <&> flip Type []
+justTagTypeP :: Parser Type
+justTagTypeP = nameP <&> flip Cons []
 
-defP :: Parser Definition
+defP :: Parser Def
 defP = do
   name <- nameP
   _ <- reservedOp parser S.walrus

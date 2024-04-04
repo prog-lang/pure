@@ -26,10 +26,8 @@ source-repository head
 library
   exposed-modules:
       CLI
-      Node.Node
-      Node.Sacred
-      Node.Transpiler
       Pure.Checks
+      Pure.Expr
       Pure.Parser
       Pure.PreType
       Pure.Sacred
@@ -37,6 +35,8 @@ library
       Pure.TypeSystem.Constraint
       Pure.TypeSystem.Subst
       Pure.TypeSystem.Unify
+      Pure.Typing.Type
+      Pure.Typing.Valid
       Utility.Common
       Utility.Convert
       Utility.Fun

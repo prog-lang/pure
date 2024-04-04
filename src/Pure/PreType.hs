@@ -1,38 +1,33 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Pure.PreType
-  ( Module (..),
-    TypeDef (..),
-    Definition (..),
-    Expression (..),
-  )
-where
+module Pure.PreType (Module (..), Def (..)) where
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
-import Pure.Parser (Expr, TypeHint)
+import Pure.Expr (Expr)
 import qualified Pure.Parser as Parser
+import Pure.Typing.Type
+  ( TExpr,
+    Type,
+    TypeDef (..),
+    Typed (..),
+  )
 import Utility.Common (Id)
 import Utility.Convert (TryInto (..))
 import Utility.Result (Result (..))
 import Utility.Strings (commad, (+-+))
 
--- TYPES -----------------------------------------------------------------------
+-- MODULE ----------------------------------------------------------------------
 
 data Module = Module
   { typeDefs :: [TypeDef],
-    definitions :: [Definition],
+    definitions :: [Def],
     exports :: [Id]
   }
 
-newtype TypeDef = Is [(Id, [Id], [TypeHint])]
--- ^                  name poly  constructors
-
-data Definition = Id := Expression
-
-data Expression = Expr ::= TypeHint
+data Def = Id :!= TExpr deriving (Eq)
 
 -- ERRORS ----------------------------------------------------------------------
 
@@ -61,25 +56,25 @@ instance TryInto Parser.Module String Module where
       tds = collectTypeDefs defs
       defs = Parser.definitions pm
 
-collectTypeDefs :: [Parser.Definition] -> [TypeDef]
+collectTypeDefs :: [Parser.Def] -> [TypeDef]
 collectTypeDefs = mapMaybe unwrapTypeDef
   where
     unwrapTypeDef (Parser.TypeDef i ps ops) = Just $ Is [(i, ps, ops)]
     unwrapTypeDef _ = Nothing
 
-makeDefinitions :: Map Id Expr -> Map Id TypeHint -> [Definition]
+makeDefinitions :: Map Id Expr -> Map Id Type -> [Def]
 makeDefinitions es =
-  map (uncurry (:=))
+  map (uncurry (:!=))
     . Map.toList
     . Map.intersectionWith (::=) es
 
-makeTypeHintMap :: [Parser.Definition] -> Map Id TypeHint
+makeTypeHintMap :: [Parser.Def] -> Map Id Type
 makeTypeHintMap = Map.fromList . mapMaybe unwrapTypeHint
   where
     unwrapTypeHint (Parser.TypeHint i th) = Just (i, th)
     unwrapTypeHint _ = Nothing
 
-makeDefMap :: [Parser.Definition] -> Map Id Expr
+makeDefMap :: [Parser.Def] -> Map Id Expr
 makeDefMap = Map.fromList . mapMaybe unwrapDefinition
   where
     unwrapDefinition (Parser.ValueDef i e) = Just (i, e)

@@ -1,6 +1,5 @@
 module Pure.Checks
-  ( afterParse,
-    entrypointPresent,
+  ( entrypointPresent,
   )
 where
 
@@ -17,18 +16,9 @@ import Pure.Parser
 import Utility.Result (Result (..))
 import Utility.Strings (commad)
 
--- TYPES -----------------------------------------------------------------------
+-- ERROR -----------------------------------------------------------------------
 
 type Error = String
-
--- COMBINED --------------------------------------------------------------------
-
-afterParse :: Module -> Result Error Module
-afterParse modul =
-  duplicateDefinitions modul
-    >>= duplicateTypeHints
-    >>= typeHintsForEachDefinition
-    >>= definitionsForEachTypeHint
 
 -- CHECKS ----------------------------------------------------------------------
 
