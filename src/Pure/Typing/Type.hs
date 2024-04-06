@@ -1,13 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Pure.Typing.Type
-  ( TypeEnv,
+  ( Module (..),
     Type (..),
     TypeDef (..),
     Def (..),
     Typed (..),
+    DExpr (..),
     TExpr,
     -- TYPE CONSTRUCTORS
+    tType,
     tList,
     tStr,
     tFloat,
@@ -18,13 +20,16 @@ module Pure.Typing.Type
   )
 where
 
-import Data.Map.Strict (Map)
 import Pure.Expr (Expr)
 import qualified Pure.Sacred as S
 import Utility.Common (Id)
 import Utility.Strings (Parens (..), parenthesised, (+-+))
 
-type TypeEnv = Map Id Type
+data Module = Module
+  { typeDefs :: [TypeDef],
+    definitions :: [Def],
+    exports :: [Id]
+  }
 
 data Type
   = Type :-> Type -- a -> b
@@ -34,25 +39,29 @@ data Type
 
 data Typed a = a ::= Type deriving (Eq)
 
-newtype TypeDef = Is [(Id, [Id], [Type])] deriving (Eq)
--- ^                  name poly  constructors
+data TypeDef = Is Id [Id] [Type] deriving (Eq)
+-- ^            name poly  constructors
 
-data Def = Id := Typed TypedExpr deriving (Eq)
+data Def = Id := TExpr deriving (Eq)
 
-type TExpr = Typed Expr
+type TExpr = Typed DExpr
 
-data TypedExpr
+-- | DExpr stands for "decorated" expression.
+data DExpr
   = Lam Id TExpr
   | If TExpr TExpr TExpr
   | App TExpr [TExpr]
   | List [TExpr]
-  | Primitive [TExpr]
+  | Lit Expr
   deriving (Eq)
 
 -- TYPE CONSTRUCTORS -----------------------------------------------------------
 
-tList :: [Type] -> Type
-tList = Cons "List"
+tType :: Type
+tType = Cons "Type" []
+
+tList :: Type -> Type
+tList a = Cons "List" [a]
 
 tStr :: Type
 tStr = Cons "Str" []

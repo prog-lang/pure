@@ -9,8 +9,7 @@ import Data.Maybe (mapMaybe)
 import Pure.Expr (Expr)
 import qualified Pure.Parser as Parser
 import Pure.Typing.Type
-  ( TExpr,
-    Type,
+  ( Type,
     TypeDef (..),
     Typed (..),
   )
@@ -27,7 +26,7 @@ data Module = Module
     exports :: [Id]
   }
 
-data Def = Id :!= TExpr deriving (Eq)
+data Def = Id :!= Typed Expr deriving (Eq)
 
 -- ERRORS ----------------------------------------------------------------------
 
@@ -59,7 +58,7 @@ instance TryInto Parser.Module String Module where
 collectTypeDefs :: [Parser.Def] -> [TypeDef]
 collectTypeDefs = mapMaybe unwrapTypeDef
   where
-    unwrapTypeDef (Parser.TypeDef i ps ops) = Just $ Is [(i, ps, ops)]
+    unwrapTypeDef (Parser.TypeDef i ps ops) = Just $ Is i ps ops
     unwrapTypeDef _ = Nothing
 
 makeDefinitions :: Map Id Expr -> Map Id Type -> [Def]

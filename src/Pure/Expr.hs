@@ -4,6 +4,8 @@ import qualified Pure.Sacred as S
 import Utility.Common (Id)
 import Utility.Strings (Parens (..), list, parenthesised, (+-+))
 
+-- EXPRESSION ------------------------------------------------------------------
+
 data Expr
   = Lam Id Expr
   | If Expr Expr Expr
@@ -15,6 +17,8 @@ data Expr
   | Int Integer
   | Bool Bool
   deriving (Eq)
+
+-- SHOW ------------------------------------------------------------------------
 
 instance Parens Expr where
   parens i@(Int _) = show i
