@@ -261,8 +261,8 @@ appP :: Parser Expr
 appP = do
   f <- callerP
   _ <- spacesP
-  args <- sepBy1 literalP spacesP
-  return $ App f args
+  (x : xs) <- sepBy1 literalP spacesP
+  return $ foldl App (App f x) xs
 
 callerP :: Parser Expr
 callerP = try (parensP exprP) <|> try qualifiedP <|> idP

@@ -9,7 +9,7 @@ import Utility.Strings (Parens (..), list, parenthesised, (+-+))
 data Expr
   = Lam Id Expr
   | If Expr Expr Expr
-  | App Expr [Expr]
+  | App Expr Expr
   | List [Expr]
   | Id Id
   | Str String
@@ -35,6 +35,6 @@ instance Show Expr where
   show (Str str) = show str
   show (Id ident) = ident
   show (List l) = list (map show l)
-  show (App ex exs) = unwords $ map parens (ex : exs)
+  show (App f arg) = show f +-+ parens arg
   show (If x y z) = S.if_ +-+ show x +-+ S.then_ +-+ show y +-+ S.else_ +-+ show z
   show (Lam p ex) = p +-+ S.arrow +-+ show ex

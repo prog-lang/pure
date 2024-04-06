@@ -1,27 +1,50 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Pure.Typing.Env
-  ( TypeEnv,
+  ( Env,
+    empty,
     member,
-    typeOf,
-    assert,
+    bind,
+    Apply (..),
+    (<:>),
   )
 where
 
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Pure.Typing.Type (Type)
+import Data.Maybe (fromMaybe)
+import Pure.Typing.Type (Scheme (..), Type (..))
 import Utility.Common (Id)
-import Utility.Result (Result (..))
 
-type TypeEnv = Map Id Type
+-- ENVIRONMENT -----------------------------------------------------------------
 
-member :: Id -> TypeEnv -> Bool
+type Env = Map Id Type
+
+class Apply a where
+  (+->) :: Env -> a -> a
+
+empty :: Env
+empty = Map.empty
+
+bind :: Id -> Type -> Env
+bind = Map.singleton
+
+member :: Id -> Env -> Bool
 member = Map.member
 
-typeOf :: Id -> TypeEnv -> Maybe Type
-typeOf = Map.lookup
+instance Apply Type where
+  env +-> (Var var) = fromMaybe (Var var) (Map.lookup var env)
+  env +-> (arg :-> res) = (+->) env arg :-> (+->) env res
+  env +-> (Cons i ps) = Cons i $ map (env +->) ps
 
-assert :: Type -> Id -> TypeEnv -> Result (Maybe Type) Type
-assert t i env =
-  case typeOf i env of
-    Nothing -> Err Nothing
-    Just t' -> if t == t' then Ok t' else Err $ Just t'
+instance (Apply t) => Apply [t] where
+  env +-> ts = map (env +->) ts
+
+instance Apply Scheme where
+  -- The fold takes care of name shadowing.
+  env +-> (vars :. t) = vars :. (foldr Map.delete env vars +-> t)
+
+(<:>) :: Env -> Env -> Env
+s1 <:> s2 = Map.union (Map.map (s1 +->) s2) s1
+-- ^ The union is left biased.

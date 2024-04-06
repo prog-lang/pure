@@ -35,9 +35,10 @@ library
       Pure.TypeSystem.Constraint
       Pure.TypeSystem.Subst
       Pure.TypeSystem.Unify
+      Pure.Typing.Ctx
       Pure.Typing.Env
+      Pure.Typing.Infer
       Pure.Typing.Type
-      Pure.Typing.Valid
       Utility.Common
       Utility.Convert
       Utility.Fun

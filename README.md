@@ -107,12 +107,14 @@ ever touched Elm or Haskell, you will know what I'm on about.
 - [Typing Haskell in Haskell][thih] - a renovated version of the legendary paper
 - [Typing Haskell in Haskell PDF][thih-pdf] - the original paper (PDF)
 - [Warnings for pattern matching][warn] - pattern matching algorithms (PDF)
+- [fby19][fby19] - Hindley-Milner inference tutorial (GitHub)
 
 [duet]: https://github.com/chrisdone/duet
 [ps]: https://github.com/purescript/purescript
 [thih]: https://github.com/ocramz/thih
 [thih-pdf]: https://web.cecs.pdx.edu/~mpj/thih/thih.pdf
 [warn]: http://moscova.inria.fr/~maranget/papers/warn/warn.pdf
+[fby19]: https://github.com/kritzcreek/fby19
 
 ## Contributing
 
