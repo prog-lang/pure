@@ -108,6 +108,8 @@ ever touched Elm or Haskell, you will know what I'm on about.
 - [Typing Haskell in Haskell PDF][thih-pdf] - the original paper (PDF)
 - [Warnings for pattern matching][warn] - pattern matching algorithms (PDF)
 - [fby19][fby19] - Hindley-Milner inference tutorial (GitHub)
+- [Programming Languages: Application and Interpretation][langs-ch.15] - 
+  chapter 15: Checking Program Invariants Statically: Types
 
 [duet]: https://github.com/chrisdone/duet
 [ps]: https://github.com/purescript/purescript
@@ -115,6 +117,7 @@ ever touched Elm or Haskell, you will know what I'm on about.
 [thih-pdf]: https://web.cecs.pdx.edu/~mpj/thih/thih.pdf
 [warn]: http://moscova.inria.fr/~maranget/papers/warn/warn.pdf
 [fby19]: https://github.com/kritzcreek/fby19
+[langs-ch.15]: https://cs.brown.edu/courses/cs173/2012/book/types.html#%28part._.Type_.Inference%29
 
 ## Contributing
 
