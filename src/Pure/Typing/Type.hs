@@ -2,17 +2,13 @@
 
 module Pure.Typing.Type
   ( Type (..),
-    Typed (..),
     Scheme (..),
-    -- TYPE CONSTRUCTORS
     tType,
     tList,
     tStr,
     tFloat,
     tInt,
     tBool,
-    -- INSPECT
-    typeOf,
   )
 where
 
@@ -20,17 +16,17 @@ import qualified Pure.Sacred as S
 import Utility.Common (Id)
 import Utility.Strings (Parens (..), commad, parenthesised, (+-+))
 
+-- TYPE & SCHEME ---------------------------------------------------------------
+
 infixr 5 :->
+
+infixr 5 :.
 
 data Type
   = Type :-> Type -- a -> b
   | Cons Id [Type] -- a b c
   | Var Id -- a
   deriving (Eq, Ord)
-
-data Typed a = a ::= Type deriving (Eq, Ord)
-
-infixr 5 :.
 
 data Scheme = [Id] :. Type deriving (Eq, Ord)
 
@@ -53,11 +49,6 @@ tInt = Cons "Int" []
 
 tBool :: Type
 tBool = Cons "Bool" []
-
--- INSPECT ---------------------------------------------------------------------
-
-typeOf :: Typed a -> Type
-typeOf (_ ::= t) = t
 
 -- SHOW ------------------------------------------------------------------------
 

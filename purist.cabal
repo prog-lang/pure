@@ -33,6 +33,7 @@ library
       Pure.Sacred
       Pure.Typing.Env
       Pure.Typing.Infer
+      Pure.Typing.Module
       Pure.Typing.Type
       Utility.Common
       Utility.Convert

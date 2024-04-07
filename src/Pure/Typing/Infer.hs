@@ -1,6 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Pure.Typing.Infer (assert, infer, runTI, evalTI) where
+module Pure.Typing.Infer
+  ( Context,
+    TI,
+    Error,
+    assert,
+    infer,
+    runTI,
+    evalTI,
+  )
+where
 
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState, get, put, runState)
@@ -17,34 +26,15 @@ import Utility.Fun ((|>))
 import Utility.Pretty (printSection)
 import Utility.Result (Result (..))
 import qualified Utility.Result as Result
-import Utility.Strings (Parens (..), (+-+), (+\+), (+\\+))
+import Utility.Strings ((+-+), (+\\+))
 
 -- TYPES -----------------------------------------------------------------------
-
-type Error = String
 
 type Subst = Env Type
 
 type Context = Env Scheme
 
-type TI a = ExceptT String (State Int) a
-
--- FREE ------------------------------------------------------------------------
-
-class Free a where
-  -- | @free@ gets free type variables.
-  free :: a -> Set Id
-
-instance Free Type where
-  free (Var v) = Set.singleton v
-  free (t :-> r) = Set.union (free t) (free r)
-  free (Cons _ ts) = Set.unions $ map free ts
-
-instance Free Scheme where
-  free (vars :. t) = Set.difference (free t) (Set.fromList vars)
-
-instance Free Context where
-  free (Env ctx) = foldMap free $ Map.elems ctx
+type TI a = ExceptT Error (State Int) a
 
 -- RUN -------------------------------------------------------------------------
 
@@ -54,24 +44,26 @@ runTI ti = let (s, a) = runState (runExceptT ti) 0 in (Result.fromEither s, a)
 evalTI :: TI a -> Result Error a
 evalTI ti = evalState (runExceptT ti) 0 |> Result.fromEither
 
--- ERROR REPORTING -------------------------------------------------------------
+-- ERRORS ----------------------------------------------------------------------
 
-cannotUnify :: String
-cannotUnify = "Cannot unify:"
+data Error
+  = UnboundVariableError Id
+  | OccursCheckError
+  | UnificationError Type Type
+  | AssertionError Scheme Scheme
+  deriving (Show)
 
 throwUnboundVariableError :: Id -> TI a
-throwUnboundVariableError x = throwError $ "Unbound variable:" +-+ show x
+throwUnboundVariableError = throwError . UnboundVariableError
 
 throwOccursCheckError :: TI a
-throwOccursCheckError = throwError $ cannotUnify +-+ "occurs check failed"
+throwOccursCheckError = throwError OccursCheckError
 
 throwUnificationError :: Type -> Type -> TI a
-throwUnificationError t r =
-  throwError $ cannotUnify +-+ parens t +-+ "with" +-+ parens r
+throwUnificationError t r = throwError $ UnificationError t r
 
 throwAssertError :: Scheme -> Scheme -> TI a
-throwAssertError hint type_ =
-  throwError $ "Expected ::" +-+ show hint +\+ "Received ::" +-+ show type_
+throwAssertError hint type_ = throwError $ AssertionError hint type_
 
 -- INFER & ASSERT --------------------------------------------------------------
 
@@ -121,6 +113,23 @@ infer ctx (Lam binder body) = do
   (s1, tyBody) <- infer tmpCtx body
   return (s1, (s1 +-> tyBinder) :-> tyBody)
 
+-- FREE ------------------------------------------------------------------------
+
+class Free a where
+  -- | @free@ gets free type variables.
+  free :: a -> Set Id
+
+instance Free Type where
+  free (Var v) = Set.singleton v
+  free (t :-> r) = Set.union (free t) (free r)
+  free (Cons _ ts) = Set.unions $ map free ts
+
+instance Free Scheme where
+  free (vars :. t) = Set.difference (free t) (Set.fromList vars)
+
+instance Free Context where
+  free (Env ctx) = foldMap free $ Map.elems ctx
+
 -- HELPERS ---------------------------------------------------------------------
 
 unify :: Type -> Type -> TI Subst
@@ -168,13 +177,13 @@ instantiate (vars :. ty) = do
 testAssert :: Scheme -> Expr -> IO ()
 testAssert hint expr = do
   case evalTI (assert primitives hint expr) of
-    Err err -> printSection "TYPE HINT MISMATCH" $ ":=" +-+ show expr +\\+ err
+    Err err -> printSection "TYPE HINT MISMATCH" $ ":=" +-+ show expr +\\+ show err
     Ok ok -> putStrLn $ "\nOK:" +-+ show ok ++ "\n"
 
 testTI :: Expr -> IO ()
 testTI expr = do
   case evalTI (typeInference primitives expr) of
-    Err err -> printSection "INFERENCE FAILURE" $ ":=" +-+ show expr +\\+ err
+    Err err -> printSection "INFERENCE FAILURE" $ ":=" +-+ show expr +\\+ show err
     Ok t -> putStrLn $ "\n" ++ show (generalize Env.empty t) ++ "\n"
 
 typeInference :: Context -> Expr -> TI Type
