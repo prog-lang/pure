@@ -31,7 +31,6 @@ library
       Pure.Parser
       Pure.PreType
       Pure.Sacred
-      Pure.Typing.Ctx
       Pure.Typing.Env
       Pure.Typing.Infer
       Pure.Typing.Type

@@ -1,17 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Pure.Typing.Infer (assert, infer, runTI) where
+module Pure.Typing.Infer (assert, infer, runTI, evalTI) where
 
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
-import Control.Monad.State (State, get, put, runState)
+import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
 import Data.Map.Strict as Map (elems, fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Pure.Expr (Expr (..))
-import Pure.Typing.Ctx (Ctx (..))
-import qualified Pure.Typing.Ctx as Ctx
-import Pure.Typing.Env (Apply (..), Env, (<:>))
+import Pure.Typing.Env (Apply (..), Env (..), (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Type (Scheme (..), Type (..), tBool, tFloat, tInt, tList, tStr)
 import Utility.Common (Id)
@@ -21,75 +19,61 @@ import Utility.Result (Result (..))
 import qualified Utility.Result as Result
 import Utility.Strings (Parens (..), (+-+), (+\+), (+\\+))
 
+-- TYPES -----------------------------------------------------------------------
+
 type Error = String
+
+type Subst = Env Type
+
+type Context = Env Scheme
 
 type TI a = ExceptT String (State Int) a
 
-runTI :: TI a -> (Result Error a, Int)
-runTI ti = let (s, a) = runState (runExceptT ti) 0 in (Result.fromEither s, a)
-
-var :: TI Type
-var = do
-  s <- get
-  put (s + 1)
-  return $ Var $ "v" ++ show s
-
-instance Free Type where
-  free (Var v) = Set.singleton v
-  free (t :-> r) = Set.union (free t) (free r)
-  free _ = Set.empty
-
-instance Free Scheme where
-  free (vars :. t) = Set.difference (free t) (Set.fromList vars)
+-- FREE ------------------------------------------------------------------------
 
 class Free a where
   -- | @free@ gets free type variables.
   free :: a -> Set Id
 
--- | Creates a fresh unification variable and binds it to the given type
-varBind :: Id -> Type -> TI Env
-varBind v ty
-  | ty == Var v = return Env.empty
-  | Set.member v (free ty) = throwError "Cannot unify: occurs check failed"
-  | otherwise = return $ Env.bind v ty
+instance Free Type where
+  free (Var v) = Set.singleton v
+  free (t :-> r) = Set.union (free t) (free r)
+  free (Cons _ ts) = Set.unions $ map free ts
 
-unify :: Type -> Type -> TI Env
-unify (Var u) t = varBind u t
-unify t (Var u) = varBind u t
-unify t@(Cons i []) r@(Cons i' [])
-  | i == i' = return Env.empty
-  | otherwise = throwUnificationError t r
-unify t@(Cons i (x : xs)) r@(Cons i' (y : ys))
-  | i == i' = do
-      s <- unify x y
-      ss <- unify (Cons i (s +-> xs)) (Cons i (s +-> ys))
-      return $ ss <:> s
-  | otherwise = throwUnificationError t r
-unify (l :-> r) (l' :-> r') = do
-  s1 <- unify l l'
-  s2 <- unify (s1 +-> r) (s1 +-> r')
-  return $ s2 <:> s1
-unify t r = throwUnificationError t r
+instance Free Scheme where
+  free (vars :. t) = Set.difference (free t) (Set.fromList vars)
+
+instance Free Context where
+  free (Env ctx) = foldMap free $ Map.elems ctx
+
+-- RUN -------------------------------------------------------------------------
+
+runTI :: TI a -> (Result Error a, Int)
+runTI ti = let (s, a) = runState (runExceptT ti) 0 in (Result.fromEither s, a)
+
+evalTI :: TI a -> Result Error a
+evalTI ti = evalState (runExceptT ti) 0 |> Result.fromEither
+
+-- ERROR REPORTING -------------------------------------------------------------
+
+cannotUnify :: String
+cannotUnify = "Cannot unify:"
+
+throwUnboundVariableError :: Id -> TI a
+throwUnboundVariableError x = throwError $ "Unbound variable:" +-+ show x
+
+throwOccursCheckError :: TI a
+throwOccursCheckError = throwError $ cannotUnify +-+ "occurs check failed"
 
 throwUnificationError :: Type -> Type -> TI a
 throwUnificationError t r =
-  throwError $ "Cannot unify" +-+ parens t +-+ "with" +-+ parens r
+  throwError $ cannotUnify +-+ parens t +-+ "with" +-+ parens r
 
-type Context = Ctx Scheme
+throwAssertError :: Scheme -> Scheme -> TI a
+throwAssertError hint type_ =
+  throwError $ "Expected ::" +-+ show hint +\+ "Received ::" +-+ show type_
 
-instance Free Context where
-  free (Ctx ctx) = foldMap free $ Map.elems ctx
-
-generalize :: Context -> Type -> Scheme
-generalize ctx t = Set.toList (Set.difference (free t) (free ctx)) :. t
-
-instantiate :: Scheme -> TI Type
-instantiate (vars :. ty) = do
-  newVars <- traverse (const var) vars
-  let subst = Map.fromList $ zip vars newVars
-  return $ subst +-> ty
-
--- INFER -----------------------------------------------------------------------
+-- INFER & ASSERT --------------------------------------------------------------
 
 assert :: Context -> Scheme -> Expr -> TI Scheme
 assert ctx hint@(vs :. _) expr = do
@@ -99,16 +83,16 @@ assert ctx hint@(vs :. _) expr = do
   let t@(vs' :. _) = generalize ctx (s2 <:> s1 +-> tyHint)
   if length vs == length vs'
     then return t
-    else throwError $ "Expected ::" +-+ show hint +\+ "Received ::" +-+ show t
+    else throwAssertError hint t
 
-infer :: Context -> Expr -> TI (Env, Type)
+infer :: Context -> Expr -> TI (Subst, Type)
 infer _ (Bool _) = return (Env.empty, tBool)
 infer _ (Int _) = return (Env.empty, tInt)
 infer _ (Float _) = return (Env.empty, tFloat)
 infer _ (Str _) = return (Env.empty, tStr)
 infer ctx (Id i) =
-  case Ctx.typeOf i ctx of
-    Nothing -> throwError $ "Unbound variable: " ++ show i
+  case Env.typeOf i ctx of
+    Nothing -> throwUnboundVariableError i
     Just scheme -> instantiate scheme <&> (,) Env.empty
 infer _ (List []) = var <&> (,) Env.empty
 infer ctx (List (x : xs)) = do
@@ -133,25 +117,65 @@ infer ctx (If condition e1 e2) = do
   return (s, t)
 infer ctx (Lam binder body) = do
   tyBinder <- var
-  let tmpCtx = Ctx.insert binder ([] :. tyBinder) ctx
+  let tmpCtx = Env.insert binder ([] :. tyBinder) ctx
   (s1, tyBody) <- infer tmpCtx body
   return (s1, (s1 +-> tyBinder) :-> tyBody)
+
+-- HELPERS ---------------------------------------------------------------------
+
+unify :: Type -> Type -> TI Subst
+unify (Var u) t = varBind u t
+unify t (Var u) = varBind u t
+unify t@(Cons i []) r@(Cons i' [])
+  | i == i' = return Env.empty
+  | otherwise = throwUnificationError t r
+unify t@(Cons i (x : xs)) r@(Cons i' (y : ys))
+  | i == i' = do
+      s <- unify x y
+      ss <- unify (Cons i (s +-> xs)) (Cons i (s +-> ys))
+      return $ ss <:> s
+  | otherwise = throwUnificationError t r
+unify (l :-> r) (l' :-> r') = do
+  s1 <- unify l l'
+  s2 <- unify (s1 +-> r) (s1 +-> r')
+  return $ s2 <:> s1
+unify t r = throwUnificationError t r
+
+var :: TI Type
+var = do
+  s <- get
+  put $ s + 1
+  return $ Var $ "v" ++ show s
+
+-- | Creates a fresh unification variable and binds it to the given type
+varBind :: Id -> Type -> TI Subst
+varBind v ty
+  | ty == Var v = return Env.empty
+  | Set.member v (free ty) = throwOccursCheckError
+  | otherwise = return $ Env.bind v ty
+
+generalize :: Context -> Type -> Scheme
+generalize ctx t = Set.toList (Set.difference (free t) (free ctx)) :. t
+
+instantiate :: Scheme -> TI Type
+instantiate (vars :. ty) = do
+  newVars <- traverse (const var) vars
+  let subst = Env.fromList $ zip vars newVars
+  return $ subst +-> ty
 
 -- REPL TESTING ----------------------------------------------------------------
 
 testAssert :: Scheme -> Expr -> IO ()
 testAssert hint expr = do
-  let (res, _) = runTI (assert primitives hint expr)
-  case res of
+  case evalTI (assert primitives hint expr) of
     Err err -> printSection "TYPE HINT MISMATCH" $ ":=" +-+ show expr +\\+ err
-    Ok ok -> putStrLn $ "\n  OK:" +-+ show ok ++ "\n"
+    Ok ok -> putStrLn $ "\nOK:" +-+ show ok ++ "\n"
 
 testTI :: Expr -> IO ()
 testTI expr = do
-  let (res, _) = runTI (typeInference primitives expr)
-  case res of
+  case evalTI (typeInference primitives expr) of
     Err err -> printSection "INFERENCE FAILURE" $ ":=" +-+ show expr +\\+ err
-    Ok t -> putStrLn $ "\n" ++ show (generalize Ctx.empty t) ++ "\n"
+    Ok t -> putStrLn $ "\n" ++ show (generalize Env.empty t) ++ "\n"
 
 typeInference :: Context -> Expr -> TI Type
 typeInference ctx expr = infer ctx expr <&> uncurry (+->)
@@ -165,4 +189,4 @@ primitives =
       ("(:)", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
       ("null", ["a"] :. tList (Var "a"))
     ]
-    |> Ctx
+    |> Env

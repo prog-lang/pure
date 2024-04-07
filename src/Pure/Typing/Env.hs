@@ -1,11 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 module Pure.Typing.Env
-  ( Env,
+  ( Env (..),
     empty,
+    fromList,
     member,
     bind,
+    typeOf,
+    insert,
     Apply (..),
     (<:>),
   )
@@ -19,22 +21,50 @@ import Utility.Common (Id)
 
 -- ENVIRONMENT -----------------------------------------------------------------
 
-type Env = Map Id Type
+newtype Env a = Env (Map Id a)
+
+-- INSTANCES -------------------------------------------------------------------
+
+instance Functor Env where
+  fmap f (Env m) = Env $ Map.map f m
+
+-- CONSTRUCT -------------------------------------------------------------------
+
+fromList :: [(Id, a)] -> Env a
+fromList = Env . Map.fromList
+
+empty :: Env a
+empty = Env Map.empty
+
+bind :: Id -> a -> Env a
+bind k = Env . Map.singleton k
+
+-- COMBINE ---------------------------------------------------------------------
+
+(<:>) :: Env Type -> Env Type -> Env Type
+s1@(Env m1) <:> (Env m2) = Env $ Map.union (Map.map (s1 +->) m2) m1
+-- ^ The union is left biased.
+
+-- UPDATE ----------------------------------------------------------------------
+
+insert :: Id -> a -> Env a -> Env a
+insert i a (Env m) = Env $ Map.insert i a m
+
+-- QUERY -----------------------------------------------------------------------
+
+member :: Id -> Env a -> Bool
+member k (Env m) = Map.member k m
+
+typeOf :: Id -> Env a -> Maybe a
+typeOf i (Env m) = Map.lookup i m
+
+-- APPLY -----------------------------------------------------------------------
 
 class Apply a where
-  (+->) :: Env -> a -> a
-
-empty :: Env
-empty = Map.empty
-
-bind :: Id -> Type -> Env
-bind = Map.singleton
-
-member :: Id -> Env -> Bool
-member = Map.member
+  (+->) :: Env Type -> a -> a
 
 instance Apply Type where
-  env +-> (Var var) = fromMaybe (Var var) (Map.lookup var env)
+  (Env env) +-> (Var var) = fromMaybe (Var var) (Map.lookup var env)
   env +-> (arg :-> res) = (+->) env arg :-> (+->) env res
   env +-> (Cons i ps) = Cons i $ map (env +->) ps
 
@@ -43,8 +73,7 @@ instance (Apply t) => Apply [t] where
 
 instance Apply Scheme where
   -- The fold takes care of name shadowing.
-  env +-> (vars :. t) = vars :. (foldr Map.delete env vars +-> t)
+  (Env env) +-> (vars :. t) = vars :. (Env (foldr Map.delete env vars) +-> t)
 
-(<:>) :: Env -> Env -> Env
-s1 <:> s2 = Map.union (Map.map (s1 +->) s2) s1
--- ^ The union is left biased.
+instance (Apply a) => Apply (Env a) where
+  subst +-> ctx = fmap (subst +->) ctx
