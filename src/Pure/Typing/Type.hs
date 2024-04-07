@@ -32,7 +32,7 @@ data Typed a = a ::= Type deriving (Eq, Ord)
 
 infixr 5 :.
 
-data Scheme = [Id] :. Type
+data Scheme = [Id] :. Type deriving (Eq, Ord)
 
 -- TYPE CONSTRUCTORS -----------------------------------------------------------
 

@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Pure.Typing.Infer where
 
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, get, put, runState)
 import Data.Functor ((<&>))
-import qualified Data.Map.Strict as Map
+import Data.Map.Strict as Map (elems, fromList)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Pure.Expr (Expr (..))
@@ -14,11 +15,13 @@ import qualified Pure.Typing.Ctx as Ctx
 import Pure.Typing.Env (Apply (..), Env, (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Type (Scheme (..), Type (..), tBool, tFloat, tInt, tList, tStr)
+import System.Console.Terminal.Size (Window (..))
+import qualified System.Console.Terminal.Size as Console
 import Utility.Common (Id)
 import Utility.Fun ((|>))
 import Utility.Result (Result (..))
 import qualified Utility.Result as Result
-import Utility.Strings ((+-+))
+import Utility.Strings ((+-+), (+\+), (+\\+))
 
 type Error = String
 
@@ -86,6 +89,16 @@ instantiate (vars :. ty) = do
 
 -- INFER -----------------------------------------------------------------------
 
+assert :: Context -> Scheme -> Expr -> TI Scheme
+assert ctx hint@(vs :. _) expr = do
+  (s1, tyExpr) <- infer ctx expr
+  tyHint <- instantiate hint
+  s2 <- unify tyHint tyExpr
+  let t@(vs' :. _) = generalize ctx (s2 <:> s1 +-> tyHint)
+  if length vs == length vs'
+    then return t
+    else throwError $ "assertion failed:" +-+ show hint +-+ "-/->" +-+ show t
+
 infer :: Context -> Expr -> TI (Env, Type)
 infer _ (Bool _) = return (Env.empty, tBool)
 infer _ (Int _) = return (Env.empty, tInt)
@@ -124,6 +137,28 @@ infer ctx (Lam binder body) = do
 
 typeInference :: Context -> Expr -> TI Type
 typeInference ctx expr = infer ctx expr <&> uncurry (+->)
+
+testAssert :: Scheme -> Expr -> IO ()
+testAssert hint expr = do
+  let (res, _) = runTI (assert primitives hint expr)
+  case res of
+    Err err -> section "ERROR" $ "::" +-+ show hint +\+ ":=" +-+ show expr +\\+ err
+    Ok ok -> putStrLn $ "\n  OK:" +-+ show ok ++ "\n"
+
+section :: String -> String -> IO ()
+section title body = do
+  maybeSize <- Console.size
+  let defaultWidth = 80
+  let w = maybe defaultWidth width maybeSize
+  putStrLn $ "\n" ++ br w title +\\+ body ++ "\n"
+
+br :: Int -> String -> String
+br width_ message = if message == "" then line else left +-+ message +-+ right
+  where
+    line = take width_ dash
+    left = take 3 dash
+    right = take (width_ - length left - length message - 2) dash
+    dash = repeat '-'
 
 testTI :: Expr -> IO ()
 testTI e = do
