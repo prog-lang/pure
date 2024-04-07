@@ -29,11 +29,12 @@ library
       Pure.Checks
       Pure.Expr
       Pure.Parser
-      Pure.PreType
       Pure.Sacred
       Pure.Typing.Env
+      Pure.Typing.Free
       Pure.Typing.Infer
       Pure.Typing.Module
+      Pure.Typing.Prep
       Pure.Typing.Type
       Utility.Common
       Utility.Convert

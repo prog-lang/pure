@@ -3,7 +3,7 @@
 module Pure.Typing.Infer
   ( Context,
     TI,
-    Error,
+    Error (..),
     assert,
     infer,
     runTI,
@@ -14,12 +14,11 @@ where
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
-import Data.Map.Strict as Map (elems, fromList)
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Pure.Expr (Expr (..))
 import Pure.Typing.Env (Apply (..), Env (..), (<:>))
 import qualified Pure.Typing.Env as Env
+import Pure.Typing.Free (Free (..))
 import Pure.Typing.Type (Scheme (..), Type (..), tBool, tFloat, tInt, tList, tStr)
 import Utility.Common (Id)
 import Utility.Fun ((|>))
@@ -113,23 +112,6 @@ infer ctx (Lam binder body) = do
   (s1, tyBody) <- infer tmpCtx body
   return (s1, (s1 +-> tyBinder) :-> tyBody)
 
--- FREE ------------------------------------------------------------------------
-
-class Free a where
-  -- | @free@ gets free type variables.
-  free :: a -> Set Id
-
-instance Free Type where
-  free (Var v) = Set.singleton v
-  free (t :-> r) = Set.union (free t) (free r)
-  free (Cons _ ts) = Set.unions $ map free ts
-
-instance Free Scheme where
-  free (vars :. t) = Set.difference (free t) (Set.fromList vars)
-
-instance Free Context where
-  free (Env ctx) = foldMap free $ Map.elems ctx
-
 -- HELPERS ---------------------------------------------------------------------
 
 unify :: Type -> Type -> TI Subst
@@ -191,11 +173,10 @@ typeInference ctx expr = infer ctx expr <&> uncurry (+->)
 
 primitives :: Context
 primitives =
-  Map.fromList
+  Env.fromList
     [ ("id", ["a"] :. Var "a" :-> Var "a"),
       ("always", ["a", "b"] :. Var "a" :-> Var "b" :-> Var "a"),
       ("(+)", [] :. tInt :-> tInt :-> tInt),
       ("(:)", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
       ("null", ["a"] :. tList (Var "a"))
     ]
-    |> Env

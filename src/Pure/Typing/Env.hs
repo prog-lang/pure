@@ -2,6 +2,8 @@
 
 module Pure.Typing.Env
   ( Env (..),
+    Subst,
+    Context,
     empty,
     fromList,
     member,
@@ -22,6 +24,10 @@ import Utility.Common (Id)
 -- ENVIRONMENT -----------------------------------------------------------------
 
 newtype Env a = Env (Map Id a)
+
+type Subst = Env Type
+
+type Context = Env Scheme
 
 -- INSTANCES -------------------------------------------------------------------
 
