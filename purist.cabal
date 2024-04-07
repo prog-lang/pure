@@ -38,6 +38,7 @@ library
       Utility.Common
       Utility.Convert
       Utility.Fun
+      Utility.Pretty
       Utility.Result
       Utility.Strings
   other-modules:
