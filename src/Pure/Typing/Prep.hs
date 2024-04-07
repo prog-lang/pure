@@ -8,10 +8,11 @@ import Data.Foldable (toList)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
+import qualified Data.Set as Set
 import Pure.Expr (Expr)
 import qualified Pure.Parser as Parser
 import Pure.Typing.Free (Free (..))
-import Pure.Typing.Module (Def (..), Module (..))
+import Pure.Typing.Module (Module (..))
 import Pure.Typing.Type (Scheme (..))
 import Utility.Common (Id)
 import Utility.Convert (TryInto (..))
@@ -38,8 +39,8 @@ instance TryInto Parser.Module String Module where
       then Err $ typeHintVsDefMismatch thm dm
       else Ok $ Module {definitions = ds, exports = exps}
     where
-      exps = Parser.exports pm
-      ds = makeDefinitions thm dm
+      exps = Set.fromList $ Parser.exports pm
+      ds = makeDefinitions dm thm
       thm = makeTypeHintMap defs
       dm = makeDefMap defs
       --   tds = collectTypeDefs defs
@@ -51,10 +52,8 @@ instance TryInto Parser.Module String Module where
 --     unwrapTypeDef (Parser.TypeDef i ps ops) = Just $ Is i ps ops
 --     unwrapTypeDef _ = Nothing
 
-makeDefinitions :: Map Id Scheme -> Map Id Expr -> [Def]
-makeDefinitions ms = map repack . Map.toList . Map.intersectionWith (,) ms
-  where
-    repack (name, (scheme, expr)) = Def name scheme expr
+makeDefinitions :: Map Id Expr -> Map Id Scheme -> Map Id (Expr, Scheme)
+makeDefinitions = Map.intersectionWith (,)
 
 makeTypeHintMap :: [Parser.Def] -> Map Id Scheme
 makeTypeHintMap = Map.fromList . mapMaybe unwrapTypeHint

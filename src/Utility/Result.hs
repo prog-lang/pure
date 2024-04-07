@@ -5,12 +5,17 @@ module Utility.Result
   ( Result (..),
     fromEither,
     unwrap,
+    toMaybe,
+    maybeErr,
     mapErr,
     (<!>),
+    collect,
   )
 where
 
-data Result err ok = Ok ok | Err err deriving (Show, Eq)
+import Data.Maybe (mapMaybe)
+
+data Result err ok = Err err | Ok ok deriving (Show, Eq)
 
 -- IMPLEMENT -------------------------------------------------------------------
 
@@ -49,6 +54,14 @@ unwrap :: Result a a -> a
 unwrap (Err err) = err
 unwrap (Ok ok) = ok
 
+toMaybe :: Result err a -> Maybe a
+toMaybe (Err _) = Nothing
+toMaybe (Ok ok) = Just ok
+
+maybeErr :: Result a ok -> Maybe a
+maybeErr (Ok _) = Nothing
+maybeErr (Err err) = Just err
+
 -- MODIFY ----------------------------------------------------------------------
 
 mapErr :: (err -> err') -> Result err ok -> Result err' ok
@@ -59,3 +72,11 @@ infixr 5 <!>
 
 (<!>) :: Result err ok -> (err -> err') -> Result err' ok
 (<!>) = flip mapErr
+
+-- COLLECT ---------------------------------------------------------------------
+
+collect :: [Result err ok] -> Result [err] [ok]
+collect results = if null errs then Ok oks else Err errs
+  where
+    errs = mapMaybe maybeErr results
+    oks = mapMaybe toMaybe results
