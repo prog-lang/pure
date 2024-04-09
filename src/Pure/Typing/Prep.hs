@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Pure.Typing.Prep () where
+module Pure.Typing.Prep (prepare) where
 
 import Data.Foldable (toList)
 import Data.Map.Strict (Map)
@@ -15,7 +15,6 @@ import Pure.Typing.Free (Free (..))
 import Pure.Typing.Module (Module (..))
 import Pure.Typing.Type (Scheme (..))
 import Utility.Common (Id)
-import Utility.Convert (TryInto (..))
 import Utility.Result (Result (..))
 import Utility.Strings (commad, (+-+))
 
@@ -33,18 +32,18 @@ typeHintVsDefMismatch thm dm =
 
 -- CONVERT ---------------------------------------------------------------------
 
-instance TryInto Parser.Module String Module where
-  tryInto pm =
-    if Map.size thm /= Map.size dm
-      then Err $ typeHintVsDefMismatch thm dm
-      else Ok $ Module {definitions = ds, exports = exps}
-    where
-      exps = Set.fromList $ Parser.exports pm
-      ds = makeDefinitions dm thm
-      thm = makeTypeHintMap defs
-      dm = makeDefMap defs
-      --   tds = collectTypeDefs defs
-      defs = Parser.definitions pm
+prepare :: Parser.Module -> Result String Module
+prepare pm =
+  if Map.size thm /= Map.size dm
+    then Err $ typeHintVsDefMismatch thm dm
+    else Ok $ Module {definitions = ds, exports = exps}
+  where
+    exps = Set.fromList $ Parser.exports pm
+    ds = makeDefinitions dm thm
+    thm = makeTypeHintMap defs
+    dm = makeDefMap defs
+    --   tds = collectTypeDefs defs
+    defs = Parser.definitions pm
 
 -- collectTypeDefs :: [Parser.Def] -> [TypeDef]
 -- collectTypeDefs = mapMaybe unwrapTypeDef

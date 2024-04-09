@@ -159,13 +159,13 @@ instantiate (vars :. ty) = do
 testAssert :: Scheme -> Expr -> IO ()
 testAssert hint expr = do
   case evalTI (assert primitives hint expr) of
-    Err err -> printSection "TYPE HINT MISMATCH" $ ":=" +-+ show expr +\\+ show err
+    Err err -> printSection "type hint mismatch" $ ":=" +-+ show expr +\\+ show err
     Ok ok -> putStrLn $ "\nOK:" +-+ show ok ++ "\n"
 
 testTI :: Expr -> IO ()
 testTI expr = do
   case evalTI (typeInference primitives expr) of
-    Err err -> printSection "INFERENCE FAILURE" $ ":=" +-+ show expr +\\+ show err
+    Err err -> printSection "inference failure" $ ":=" +-+ show expr +\\+ show err
     Ok t -> putStrLn $ "\n" ++ show (generalize Env.empty t) ++ "\n"
 
 typeInference :: Context -> Expr -> TI Type

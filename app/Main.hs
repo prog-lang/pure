@@ -3,10 +3,10 @@ module Main (main) where
 import CLI (Application, Command (..), application, runIO)
 import Data.Version (showVersion)
 import Paths_purist (version)
-import Pure.Parser (Module, parseModule)
-import System.IO (hPrint, stderr)
-import Utility.Fun ((!>))
-import Utility.Result (Result (..), (<!>))
+import Pure.Parser (parseModule)
+import qualified Pure.Typing.Check as Check
+import qualified Pure.Typing.Error as TypingError
+import Utility.Result (Result (..))
 
 main :: IO ()
 main = runIO app
@@ -27,11 +27,17 @@ app =
     ]
 
 compile :: IO ()
-compile = getContents >>= transpile !> printOut
+compile = getContents >>= transpile
 
-printOut :: (Show a, Show b) => Result a b -> IO ()
-printOut (Ok ok) = print ok
-printOut (Err err) = hPrint stderr err
+-- printOut :: (Show a, Show b) => Result a b -> IO ()
+-- printOut (Ok ok) = print ok
+-- printOut (Err err) = hPrint stderr err
 
-transpile :: String -> Result String Module
-transpile input = parseModule "main.pure" input <!> show
+transpile :: String -> IO ()
+transpile input =
+  case parseModule "main.pure" input of
+    Err parseError -> print parseError
+    Ok parsedModule ->
+      case Check.typing parsedModule of
+        Err typingError -> mapM_ TypingError.printError typingError
+        Ok _ -> putStrLn "OK"

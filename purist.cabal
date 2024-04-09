@@ -30,7 +30,9 @@ library
       Pure.Expr
       Pure.Parser
       Pure.Sacred
+      Pure.Typing.Check
       Pure.Typing.Env
+      Pure.Typing.Error
       Pure.Typing.Free
       Pure.Typing.Infer
       Pure.Typing.Module

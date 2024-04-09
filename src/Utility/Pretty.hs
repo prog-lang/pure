@@ -1,5 +1,6 @@
 module Utility.Pretty (printSection) where
 
+import Data.Char (toUpper)
 import System.Console.Terminal.Size (Window (..))
 import qualified System.Console.Terminal.Size as Console
 import Utility.Strings ((+-+), (+\\+))
@@ -9,7 +10,8 @@ printSection title body = do
   maybeSize <- Console.size
   let defaultWidth = 80
   let w = maybe defaultWidth width maybeSize
-  putStrLn $ "\n" ++ br w title +\\+ body ++ "\n"
+  let capTitle = map toUpper title
+  putStrLn $ "\n" ++ br w capTitle +\\+ body ++ "\n"
 
 br :: Int -> String -> String
 br width_ message = if message == "" then line else left +-+ message +-+ right

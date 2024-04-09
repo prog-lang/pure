@@ -4,6 +4,7 @@ module Utility.Strings
   ( commad,
     parenthesised,
     braced,
+    ticked,
     bracketed,
     tab,
     ul,
@@ -46,6 +47,9 @@ infixr 5 +\\+
 
 (+\\+) :: String -> String -> String
 x +\\+ y = x ++ "\n\n" ++ y
+
+ticked :: String -> String
+ticked it = "`" ++ it ++ "`"
 
 commad :: [String] -> String
 commad = intercalate ", "
