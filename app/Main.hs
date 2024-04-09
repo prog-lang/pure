@@ -7,6 +7,7 @@ import Pure.Parser (parseModule)
 import qualified Pure.Typing.Check as Check
 import qualified Pure.Typing.Error as TypingError
 import Utility.Result (Result (..))
+import Utility.Strings (ticked, (+-+))
 
 main :: IO ()
 main = runIO app
@@ -22,22 +23,24 @@ app =
         { longName = "compile",
           shortName = Just 'c',
           description = "Compile a single module",
-          action = const compile
+          argCount = 1,
+          action = compile
         }
     ]
 
-compile :: IO ()
-compile = getContents >>= transpile
+compile :: Application -> [String] -> IO ()
+compile _ [path] = readFile path >>= transpile path
+compile _ _ = undefined
 
 -- printOut :: (Show a, Show b) => Result a b -> IO ()
 -- printOut (Ok ok) = print ok
 -- printOut (Err err) = hPrint stderr err
 
-transpile :: String -> IO ()
-transpile input =
-  case parseModule "main.pure" input of
+transpile :: String -> String -> IO ()
+transpile path input =
+  case parseModule path input of
     Err parseError -> print parseError
     Ok parsedModule ->
       case Check.typing parsedModule of
         Err typingError -> mapM_ TypingError.printError typingError
-        Ok _ -> putStrLn "OK"
+        Ok _ -> putStrLn $ "Compiled" +-+ ticked path +-+ "successfully."

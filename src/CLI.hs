@@ -12,6 +12,7 @@ import Data.List (singleton)
 import Data.Map.Strict (Map, (!))
 import qualified Data.Map.Strict as Map
 import System.Environment (getArgs)
+import Utility.Fun ((|>))
 import Utility.Strings
   ( parenthesised,
     ul,
@@ -28,7 +29,7 @@ data Application = Application
     purpose :: String,
     authors :: [String],
     commands :: [Command],
-    cmds :: Map String (Application -> IO ())
+    cmds :: Map String Command
   }
 
 data Command
@@ -36,7 +37,8 @@ data Command
   { longName :: String,
     shortName :: Maybe Char,
     description :: String,
-    action :: Application -> IO ()
+    argCount :: Int,
+    action :: Application -> [String] -> IO ()
   }
 
 -- CONSTRUCT -------------------------------------------------------------------
@@ -65,7 +67,8 @@ helpCommand =
     { longName = "help",
       shortName = Nothing,
       description = "Display help message",
-      action = putStr . help
+      argCount = 0,
+      action = \app _ -> app |> help |> putStr
     }
 
 versionCommand :: Command
@@ -74,20 +77,21 @@ versionCommand =
     { longName = "version",
       shortName = Nothing,
       description = "Display version info",
-      action = putStrLn . overview
+      argCount = 0,
+      action = \app _ -> app |> overview |> putStrLn
     }
 
 -- INSPECT COMMAND -------------------------------------------------------------
 
 nameAndDescription :: Command -> String
-nameAndDescription (Command long (Just short) hint _) =
+nameAndDescription (Command long (Just short) hint _ _) =
   long +-+ parenthesised [short] +-+ "-" +-+ hint
-nameAndDescription (Command long _ hint _) = long +-+ "-" +-+ hint
+nameAndDescription (Command long _ hint _ _) = long +-+ "-" +-+ hint
 
-namesAndActions :: Command -> [(String, Application -> IO ())]
-namesAndActions command = (longName command, action command) : shortOption
+namesAndActions :: Command -> [(String, Command)]
+namesAndActions command = (longName command, command) : shortOption
   where
-    shortOption = maybe [] (\c -> [(singleton c, action command)]) (shortName command)
+    shortOption = maybe [] (\c -> [(singleton c, command)]) (shortName command)
 
 -- INSPECT APPLICATION ---------------------------------------------------------
 
@@ -113,8 +117,13 @@ runIO app = getArgs >>= run app
 
 run :: Application -> [String] -> IO ()
 run app [] = defaultCommand app
-run app [com] | Map.member com (cmds app) = (cmds app ! com) app
+run app (cmd : args)
+  | commandMatches (length args) (Map.lookup cmd $ cmds app) =
+      (action $ cmds app ! cmd) app args
 run app _ = putStr $ unknownCommandSequence +\\+ help app
+
+commandMatches :: Int -> Maybe Command -> Bool
+commandMatches argc = maybe False ((argc ==) . argCount)
 
 defaultCommand :: Application -> IO ()
 defaultCommand = putStr . help
