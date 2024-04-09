@@ -26,6 +26,7 @@ data Type
   = Type :-> Type -- a -> b
   | Cons Id [Type] -- a b c
   | Var Id -- a
+  | Rigid Id
   deriving (Eq, Ord)
 
 data Scheme = [Id] :. Type deriving (Eq, Ord)
@@ -61,6 +62,7 @@ instance Show Type where
   show (Cons i []) = i
   show (Cons i ts) = i +-+ unwords (map parens ts)
   show (Var i) = i
+  show (Rigid i) = i
 
 instance Show Scheme where
   show ([] :. t) = show t

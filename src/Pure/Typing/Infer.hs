@@ -67,14 +67,11 @@ throwAssertError hint type_ = throwError $ AssertionError hint type_
 -- INFER & ASSERT --------------------------------------------------------------
 
 assert :: Context -> Scheme -> Expr -> TI Scheme
-assert ctx hint@(vs :. _) expr = do
+assert ctx hint expr = do
   (s1, tyExpr) <- infer ctx expr
-  tyHint <- instantiate hint
+  tyHint <- rigidInstance hint
   s2 <- unify tyHint tyExpr
-  let t@(vs' :. _) = generalize ctx (s2 <:> s1 +-> tyHint)
-  if length vs == length vs'
-    then return t
-    else throwAssertError hint t
+  return $ generalize ctx (s2 <:> s1 +-> tyHint)
 
 infer :: Context -> Expr -> TI (Subst, Type)
 infer _ (Bool _) = return (Env.empty, tBool)
@@ -130,6 +127,9 @@ unify (l :-> r) (l' :-> r') = do
   s1 <- unify l l'
   s2 <- unify (s1 +-> r) (s1 +-> r')
   return $ s2 <:> s1
+unify t@(Rigid x) r@(Rigid y)
+  | x == y = return Env.empty
+  | otherwise = throwUnificationError t r
 unify t r = throwUnificationError t r
 
 var :: TI Type
@@ -137,6 +137,12 @@ var = do
   s <- get
   put $ s + 1
   return $ Var $ "v" ++ show s
+
+rigid :: TI Type
+rigid = do
+  s <- get
+  put $ s + 1
+  return $ Rigid $ "r" ++ show s
 
 -- | Creates a fresh unification variable and binds it to the given type
 varBind :: Id -> Type -> TI Subst
@@ -151,6 +157,12 @@ generalize ctx t = Set.toList (Set.difference (free t) (free ctx)) :. t
 instantiate :: Scheme -> TI Type
 instantiate (vars :. ty) = do
   newVars <- traverse (const var) vars
+  let subst = Env.fromList $ zip vars newVars
+  return $ subst +-> ty
+
+rigidInstance :: Scheme -> TI Type
+rigidInstance (vars :. ty) = do
+  newVars <- traverse (const rigid) vars
   let subst = Env.fromList $ zip vars newVars
   return $ subst +-> ty
 
