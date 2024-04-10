@@ -71,6 +71,7 @@ class Apply a where
 
 instance Apply Type where
   (Env env) +-> (Var var) = fromMaybe (Var var) (Map.lookup var env)
+  (Env env) +-> (Rigid var) = fromMaybe (Rigid var) (Map.lookup var env)
   env +-> (arg :-> res) = (+->) env arg :-> (+->) env res
   env +-> (Cons i ps) = Cons i $ map (env +->) ps
 

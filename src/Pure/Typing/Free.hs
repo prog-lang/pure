@@ -17,6 +17,7 @@ class Free a where
 
 instance Free Type where
   free (Var v) = Set.singleton v
+  free (Rigid v) = Set.singleton v
   free (t :-> r) = Set.union (free t) (free r)
   free (Cons _ ts) = Set.unions $ map free ts
 

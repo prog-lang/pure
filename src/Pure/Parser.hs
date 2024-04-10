@@ -17,27 +17,32 @@ module Pure.Parser
   )
 where
 
+import Control.Monad (liftM)
 import Data.Char (isLower)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
-import Pure.Expr (Expr (..))
+import Pure.Expr (Expr (..), positionOf)
 import qualified Pure.Sacred as S
 import Pure.Typing.Type (Type (..))
 import Text.Parsec
   ( ParseError,
+    ParsecT,
     SourceName,
+    SourcePos,
     alphaNum,
     between,
     char,
     endBy,
     eof,
+    getParserState,
     many,
     oneOf,
     optionMaybe,
     parse,
     sepBy,
     sepBy1,
+    statePos,
     try,
     (<?>),
     (<|>),
@@ -242,7 +247,8 @@ ifP = do
   x <- between (reservedP S.if_) (reservedP S.then_) notIfP
   y <- notIfP <* reservedP S.else_
   z <- exprP
-  return $ If x y z
+  pos <- sourcePos
+  return $ If x y z pos
 
 -- | Any expression except `if` unless it's parenthesised.
 notIfP :: Parser Expr
@@ -252,7 +258,8 @@ lambdaP :: Parser Expr
 lambdaP = do
   p <- paramP <?> "a named parameter"
   expr <- exprP
-  return $ Lam p expr
+  pos <- sourcePos
+  return $ Lam p expr pos
   where
     paramP :: Parser String
     paramP = nameP <* reservedOp parser S.arrow
@@ -262,7 +269,9 @@ appP = do
   f <- callerP
   _ <- spacesP
   (x : xs) <- sepBy1 literalP spacesP
-  return $ foldl App (App f x) xs
+  return $ foldl go (go f x) xs
+  where
+    go f x = App f x (positionOf f)
 
 callerP :: Parser Expr
 callerP = try (parensP exprP) <|> try qualifiedP <|> idP
@@ -279,28 +288,47 @@ literalP =
     <|> intP
 
 listP :: Parser Expr
-listP = brackets parser $ List <$> commaSep1 parser exprP
+listP = do
+  list <- brackets parser $ commaSep1 parser exprP
+  pos <- sourcePos
+  return $ List list pos
 
 qualifiedP :: Parser Expr
-qualifiedP = sepBy1 nameP (char S.dot) <&> intercalate (S.str S.dot) !> Id
+qualifiedP = do
+  qual <- sepBy1 nameP (char S.dot) <&> intercalate (S.str S.dot)
+  pos <- sourcePos
+  return $ Id qual pos
 
 idP :: Parser Expr
-idP = Id <$> nameP
+idP = do
+  name <- nameP
+  pos <- sourcePos
+  return $ Id name pos
 
 strP :: Parser Expr
-strP = Str <$> stringLiteral parser
+strP = do
+  str <- stringLiteral parser
+  pos <- sourcePos
+  return $ Str str pos
 
 floatP :: Parser Expr
 floatP = do
   sign <- optionMaybe $ char S.minus
   number <- float parser
-  return $ Float $ if isJust sign then -number else number
+  pos <- sourcePos
+  return $ Float (if isJust sign then -number else number) pos
 
 intP :: Parser Expr
-intP = Int <$> integer parser
+intP = do
+  int <- integer parser
+  pos <- sourcePos
+  return $ Int int pos
 
 boolP :: Parser Expr
-boolP = (symbolP S.true <|> symbolP S.false) <&> read !> Bool
+boolP = do
+  b <- symbolP S.true <|> symbolP S.false
+  pos <- sourcePos
+  return $ Bool (read b) pos
 
 reservedP :: String -> Parser ()
 reservedP = reserved parser
@@ -324,3 +352,6 @@ parensP = parens parser
 
 symbolP :: String -> Parser String
 symbolP = symbol parser
+
+sourcePos :: (Monad m) => ParsecT s u m SourcePos
+sourcePos = statePos `liftM` getParserState

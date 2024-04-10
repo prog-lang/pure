@@ -1,7 +1,9 @@
 module Pure.Typing.Check (typing, check, checkDef) where
 
+import Control.Monad.Error.Class (withError)
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
+import Pure.Expr (positionOf)
 import qualified Pure.Parser as Parser
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Error (Error (..))
@@ -10,7 +12,7 @@ import Pure.Typing.Module (Def (..), Module (..))
 import Pure.Typing.Prep (prepare)
 import Pure.Typing.Type (Scheme (..))
 import Utility.Fun ((!>))
-import Utility.Result (Result (..), collect, mapErr, (<!>))
+import Utility.Result (Result (..), collect, mapErr)
 
 -- CHECKS ----------------------------------------------------------------------
 
@@ -24,9 +26,10 @@ check :: Context -> Module -> Result [Error] Module
 check ctx modul = fmap (const modul) $ collect $ map (checkDef ctx) $ defs modul
 
 checkDef :: Context -> Def -> Result Error Scheme
-checkDef ctx (Def name expr hint) = result <!> InferenceError name
-  where
-    result = evalTI $ assert ctx hint expr
+checkDef ctx (Def name expr hint) =
+  evalTI $
+    withError (At (positionOf expr) . WithId name) $
+      do assert ctx hint expr
 
 -- HELPERS ---------------------------------------------------------------------
 

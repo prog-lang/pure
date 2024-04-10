@@ -8,6 +8,7 @@ module Utility.Strings
     bracketed,
     tab,
     ul,
+    li,
     array,
     tuple,
     list,
@@ -76,7 +77,7 @@ tab :: String
 tab = replicate 4 ' '
 
 ul :: [String] -> String
-ul = unlines . map li
+ul = unlines . map li . lines . unlines
 
 li :: String -> String
 li = (tab ++)
