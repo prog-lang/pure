@@ -40,6 +40,7 @@ library
       Pure.Typing.Type
       Utility.Common
       Utility.Convert
+      Utility.Debug
       Utility.Fun
       Utility.Pretty
       Utility.Result

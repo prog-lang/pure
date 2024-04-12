@@ -6,6 +6,7 @@ module Pure.Typing.Env
     Context,
     empty,
     fromList,
+    fromMap,
     member,
     bind,
     typeOf,
@@ -38,6 +39,9 @@ instance Functor Env where
 
 fromList :: [(Id, a)] -> Env a
 fromList = Env . Map.fromList
+
+fromMap :: Map Id a -> Env a
+fromMap = Env
 
 empty :: Env a
 empty = Env Map.empty

@@ -1,6 +1,7 @@
 module Pure.Checks (entrypointPresent) where
 
-import Pure.Parser (Module (..), moduleNames)
+import Pure.Typing.Module (Module (..))
+import qualified Pure.Typing.Module as Module
 import Utility.Result (Result (..))
 
 -- ERROR -----------------------------------------------------------------------
@@ -11,7 +12,7 @@ type Error = String
 
 entrypointPresent :: Module -> Result Error Module
 entrypointPresent modul =
-  if elem entrypoint $ moduleNames modul
+  if elem entrypoint $ Module.names modul
     then Ok modul
     else Err err
   where

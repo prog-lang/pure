@@ -1,17 +1,17 @@
 id :: a -> a;
-id := x -> x;
+id := a -> a;
 
 first :: a -> b -> a;
-first := x -> _ -> x;
+first := a -> _ -> a;
 
 second :: a -> b -> b;
-second := _ -> y -> y;
+second := _ -> b -> b;
 
-flip :: (x -> y -> z) -> y -> x -> z;
-flip := f -> y -> x -> f x y;
+flip :: (a -> b -> c) -> b -> a -> c;
+flip := f -> b -> a -> f a b;
 
 compose :: (a -> b) -> (b -> c) -> a -> c;
-compose := f -> g -> x -> g (f x);
+compose := f -> g -> a -> g (f a);
 
 export (
   id,

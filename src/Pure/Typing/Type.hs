@@ -55,6 +55,8 @@ tBool = Cons "Bool" []
 
 instance Parens Type where
   parens t@(Cons _ []) = show t
+  parens t@(Var _) = show t
+  parens t@(Rigid _) = show t
   parens t = parenthesised $ show t
 
 instance Show Type where

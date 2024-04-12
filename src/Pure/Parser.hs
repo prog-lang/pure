@@ -18,7 +18,7 @@ module Pure.Parser
 where
 
 import Control.Monad (liftM)
-import Data.Char (isLower)
+import Data.Char (isLower, isLowerCase)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
@@ -36,6 +36,7 @@ import Text.Parsec
     endBy,
     eof,
     getParserState,
+    letter,
     many,
     oneOf,
     optionMaybe,
@@ -152,8 +153,8 @@ language =
       commentEnd = "-}",
       commentLine = "--",
       nestedComments = True,
-      identStart = identLetter language,
-      identLetter = alphaNum <|> oneOf "_",
+      identStart = letter <|> char '_',
+      identLetter = alphaNum <|> char '_',
       opStart = opLetter language,
       opLetter = oneOf ":!#$%&*+./<=>?@\\^|-~",
       reservedOpNames = S.operators,
@@ -222,15 +223,20 @@ fromTypeP = try taggedTypeP <|> typeLiteralP
 
 taggedTypeP :: Parser Type
 taggedTypeP = do
-  tag <- nameP
+  tag@(l : _) <- nameP
   params <- many typeLiteralP
-  return $ Cons tag params
+  return $
+    if null params
+      then (if isLowerCase l then Var tag else Cons tag [])
+      else Cons tag params
 
 typeLiteralP :: Parser Type
-typeLiteralP = try (parensP typeP) <|> justTagTypeP <?> "a type literal"
+typeLiteralP = try (parensP typeP) <|> typeVarP <?> "a type literal"
 
-justTagTypeP :: Parser Type
-justTagTypeP = nameP <&> flip Cons []
+typeVarP :: Parser Type
+typeVarP = do
+  name@(l : _) <- nameP
+  return $ if isLowerCase l then Var name else Cons name []
 
 defP :: Parser Def
 defP = do
@@ -244,10 +250,10 @@ exprP = ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"
 
 ifP :: Parser Expr
 ifP = do
+  pos <- sourcePos
   x <- between (reservedP S.if_) (reservedP S.then_) notIfP
   y <- notIfP <* reservedP S.else_
   z <- exprP
-  pos <- sourcePos
   return $ If x y z pos
 
 -- | Any expression except `if` unless it's parenthesised.
@@ -256,9 +262,9 @@ notIfP = try lambdaP <|> try appP <|> literalP <?> "a condition"
 
 lambdaP :: Parser Expr
 lambdaP = do
+  pos <- sourcePos
   p <- paramP <?> "a named parameter"
   expr <- exprP
-  pos <- sourcePos
   return $ Lam p expr pos
   where
     paramP :: Parser String
@@ -289,45 +295,45 @@ literalP =
 
 listP :: Parser Expr
 listP = do
-  list <- brackets parser $ commaSep1 parser exprP
   pos <- sourcePos
+  list <- brackets parser $ commaSep1 parser exprP
   return $ List list pos
 
 qualifiedP :: Parser Expr
 qualifiedP = do
-  qual <- sepBy1 nameP (char S.dot) <&> intercalate (S.str S.dot)
   pos <- sourcePos
+  qual <- sepBy1 nameP (char S.dot) <&> intercalate (S.str S.dot)
   return $ Id qual pos
 
 idP :: Parser Expr
 idP = do
-  name <- nameP
   pos <- sourcePos
+  name <- nameP
   return $ Id name pos
 
 strP :: Parser Expr
 strP = do
-  str <- stringLiteral parser
   pos <- sourcePos
+  str <- stringLiteral parser
   return $ Str str pos
 
 floatP :: Parser Expr
 floatP = do
+  pos <- sourcePos
   sign <- optionMaybe $ char S.minus
   number <- float parser
-  pos <- sourcePos
   return $ Float (if isJust sign then -number else number) pos
 
 intP :: Parser Expr
 intP = do
-  int <- integer parser
   pos <- sourcePos
+  int <- integer parser
   return $ Int int pos
 
 boolP :: Parser Expr
 boolP = do
-  b <- symbolP S.true <|> symbolP S.false
   pos <- sourcePos
+  b <- symbolP S.true <|> symbolP S.false
   return $ Bool (read b) pos
 
 reservedP :: String -> Parser ()
