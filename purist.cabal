@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       CLI
-      Pure.Checks
       Pure.Expr
       Pure.Parser
       Pure.Sacred

@@ -8,7 +8,6 @@ import Data.Foldable (toList)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
-import Data.Set (isSubsetOf, (\\))
 import qualified Data.Set as Set
 import Pure.Expr (Expr)
 import qualified Pure.Parser as Parser
@@ -40,7 +39,7 @@ prepare :: Parser.Module -> Result Error Module
 prepare pm =
   if Map.size thm /= Map.size dm
     then Err $ typeHintVsDefMismatch thm dm
-    else moduleExportsExistingNames $ Module {definitions = ds, exports = exps}
+    else Module.exportsExistingNames $ Module {definitions = ds, exports = exps}
   where
     exps = Set.fromList $ Parser.exports pm
     ds = makeDefinitions dm thm
@@ -48,16 +47,6 @@ prepare pm =
     dm = makeDefMap defs
     --   tds = collectTypeDefs defs
     defs = Parser.definitions pm
-
-moduleExportsExistingNames :: Module -> Result Error Module
-moduleExportsExistingNames modul =
-  if es `isSubsetOf` ns
-    then Ok modul
-    else Err $ "Module exports undefined identifiers:" +-+ diff
-  where
-    es = exports modul
-    ns = Module.names modul
-    diff = commad $ toList $ es \\ ns
 
 -- collectTypeDefs :: [Parser.Def] -> [TypeDef]
 -- collectTypeDefs = mapMaybe unwrapTypeDef
