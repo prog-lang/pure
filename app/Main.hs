@@ -2,7 +2,7 @@ module Main (main) where
 
 import CLI (Application, Command (..), application, runIO)
 import Data.Version (showVersion)
-import Paths_purist (version)
+import Paths_pure (version)
 import Pure.Parser (parseModule)
 import qualified Pure.Typing.Check as Check
 import qualified Pure.Typing.Error as TypingError
