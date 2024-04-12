@@ -26,18 +26,24 @@ source-repository head
 library
   exposed-modules:
       CLI
-      Convert
-      Fun
-      Node
-      Node.Sacred
-      Node.Transpiler
-      Pure
-      Pure.Checks
+      Pure.Expr
       Pure.Parser
       Pure.Sacred
-      Result
-      Strings
-      Type
+      Pure.Typing.Check
+      Pure.Typing.Env
+      Pure.Typing.Error
+      Pure.Typing.Free
+      Pure.Typing.Infer
+      Pure.Typing.Module
+      Pure.Typing.Prep
+      Pure.Typing.Type
+      Utility.Common
+      Utility.Convert
+      Utility.Debug
+      Utility.Fun
+      Utility.Pretty
+      Utility.Result
+      Utility.Strings
   other-modules:
       Paths_purist
   autogen-modules:
@@ -54,7 +60,10 @@ library
     , mtl >=2.3.1
     , parsec >=3.1.16.1
     , parsec3-numbers >=0.1.0
+    , pretty >=1.1.3.6
+    , terminal-size >=0.3.4
     , text >=2.0.2
+    , transformers >=0.6.1.0
     , unordered-containers >=0.2.20
   default-language: Haskell2010
 
@@ -76,8 +85,11 @@ executable purist
     , mtl >=2.3.1
     , parsec >=3.1.16.1
     , parsec3-numbers >=0.1.0
+    , pretty >=1.1.3.6
     , purist
+    , terminal-size >=0.3.4
     , text >=2.0.2
+    , transformers >=0.6.1.0
     , unordered-containers >=0.2.20
   default-language: Haskell2010
 
@@ -101,7 +113,10 @@ test-suite purist-test
     , mtl >=2.3.1
     , parsec >=3.1.16.1
     , parsec3-numbers >=0.1.0
+    , pretty >=1.1.3.6
     , purist
+    , terminal-size >=0.3.4
     , text >=2.0.2
+    , transformers >=0.6.1.0
     , unordered-containers >=0.2.20
   default-language: Haskell2010

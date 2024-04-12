@@ -1,6 +1,6 @@
 -- | module Fun contains convenient functional primitives used
 -- around the codebase.
-module Fun ((!>), (|>)) where
+module Utility.Fun ((!>), (|>)) where
 
 infixl 0 |> -- function application
 

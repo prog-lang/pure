@@ -1,12 +1,14 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 
-module Strings
+module Utility.Strings
   ( commad,
     parenthesised,
     braced,
+    ticked,
     bracketed,
     tab,
     ul,
+    li,
     array,
     tuple,
     list,
@@ -22,7 +24,7 @@ where
 
 import Data.Char (isSpace)
 import Data.List (intercalate)
-import Fun ((!>))
+import Utility.Fun ((!>))
 
 class Parens a where
   parens :: a -> String
@@ -46,6 +48,9 @@ infixr 5 +\\+
 
 (+\\+) :: String -> String -> String
 x +\\+ y = x ++ "\n\n" ++ y
+
+ticked :: String -> String
+ticked it = "`" ++ it ++ "`"
 
 commad :: [String] -> String
 commad = intercalate ", "
@@ -72,7 +77,7 @@ tab :: String
 tab = replicate 4 ' '
 
 ul :: [String] -> String
-ul = unlines . map li
+ul = unlines . map li . lines . unlines
 
 li :: String -> String
 li = (tab ++)

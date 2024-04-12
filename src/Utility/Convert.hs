@@ -2,9 +2,9 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module Convert (Into (..), TryInto (..)) where
+module Utility.Convert (Into (..), TryInto (..)) where
 
-import Result (Result (Ok))
+import Utility.Result (Result (Ok))
 
 class Into a b where
   into :: a -> b

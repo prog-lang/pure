@@ -1,18 +1,23 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 
-module Result
+module Utility.Result
   ( Result (..),
     fromEither,
     unwrap,
+    toMaybe,
+    maybeErr,
     mapErr,
     (<!>),
+    collect,
   )
 where
 
-data Result err ok = Ok ok | Err err deriving (Show, Eq)
+import Data.Maybe (mapMaybe)
 
--- IMPLEMENT
+data Result err ok = Err err | Ok ok deriving (Show, Eq)
+
+-- IMPLEMENT -------------------------------------------------------------------
 
 instance Functor (Result err) where
   fmap :: (a -> b) -> Result err a -> Result err b
@@ -37,19 +42,27 @@ instance MonadFail (Result String) where
   fail :: String -> Result String a
   fail = Err
 
--- CONSTRUCT
+-- CONSTRUCT -------------------------------------------------------------------
 
 fromEither :: Either err ok -> Result err ok
 fromEither (Left err) = Err err
 fromEither (Right ok) = Ok ok
 
--- DECONSTRUCT
+-- DECONSTRUCT -----------------------------------------------------------------
 
 unwrap :: Result a a -> a
 unwrap (Err err) = err
 unwrap (Ok ok) = ok
 
--- MODIFY
+toMaybe :: Result err a -> Maybe a
+toMaybe (Err _) = Nothing
+toMaybe (Ok ok) = Just ok
+
+maybeErr :: Result a ok -> Maybe a
+maybeErr (Ok _) = Nothing
+maybeErr (Err err) = Just err
+
+-- MODIFY ----------------------------------------------------------------------
 
 mapErr :: (err -> err') -> Result err ok -> Result err' ok
 mapErr _ (Ok ok) = Ok ok
@@ -59,3 +72,11 @@ infixr 5 <!>
 
 (<!>) :: Result err ok -> (err -> err') -> Result err' ok
 (<!>) = flip mapErr
+
+-- COLLECT ---------------------------------------------------------------------
+
+collect :: [Result err ok] -> Result [err] [ok]
+collect results = if null errs then Ok oks else Err errs
+  where
+    errs = mapMaybe maybeErr results
+    oks = mapMaybe toMaybe results

@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MonoLocalBinds #-}
 
-module Node
+module Node.Node
   ( Module (..),
     Statement (..),
     Expr (..),
@@ -10,9 +10,9 @@ module Node
 where
 
 import qualified Node.Sacred as S
-import Strings (array, braced, commad, list, parenthesised, tuple, (+-+))
+import Utility.Strings (array, braced, commad, list, parenthesised, tuple, (+-+))
 
--- TYPES
+-- TYPES -----------------------------------------------------------------------
 
 type Id = String
 
@@ -42,13 +42,13 @@ data Expr
   | Lam [Id] [Statement]
   deriving (Eq)
 
--- INSPECT
+-- INSPECT ---------------------------------------------------------------------
 
 isTernary :: Expr -> Bool
 isTernary (Ternary {}) = True
 isTernary _ = False
 
--- SHOW
+-- SHOW ------------------------------------------------------------------------
 
 embrace :: Expr -> String
 embrace i@(Int _) = show i

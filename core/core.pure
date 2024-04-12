@@ -1,8 +1,17 @@
-id := x -> x;
-first := x -> _ -> x;
-second := _ -> y -> y;
-flip := f -> y -> x -> f x y;
-compose := f -> g -> x -> g (f x);
+id :: a -> a;
+id := a -> a;
+
+first :: a -> b -> a;
+first := a -> _ -> a;
+
+second :: a -> b -> b;
+second := _ -> b -> b;
+
+flip :: (a -> b -> c) -> b -> a -> c;
+flip := f -> b -> a -> f a b;
+
+compose :: (a -> b) -> (b -> c) -> a -> c;
+compose := f -> g -> a -> g (f a);
 
 export (
   id,

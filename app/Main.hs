@@ -1,16 +1,13 @@
 module Main (main) where
 
 import CLI (Application, Command (..), application, runIO)
-import Convert (Into (..))
 import Data.Version (showVersion)
-import Fun ((!>), (|>))
-import qualified Node
-import Node.Transpiler ()
 import Paths_purist (version)
-import Pure.Checks (duplicateDefinitions)
 import Pure.Parser (parseModule)
-import Result (Result (..), (<!>))
-import System.IO (hPutStrLn, stderr)
+import qualified Pure.Typing.Check as Check
+import qualified Pure.Typing.Error as TypingError
+import Utility.Result (Result (..))
+import Utility.Strings (ticked, (+-+))
 
 main :: IO ()
 main = runIO app
@@ -26,20 +23,24 @@ app =
         { longName = "compile",
           shortName = Just 'c',
           description = "Compile a single module",
-          action = const compile
+          argCount = 1,
+          action = compile
         }
     ]
 
-compile :: IO ()
-compile = getContents >>= transpile !> printOut
+compile :: Application -> [String] -> IO ()
+compile _ [path] = readFile path >>= transpile path
+compile _ _ = undefined
 
-printOut :: (Show a) => Result String a -> IO ()
-printOut (Ok ok) = print ok
-printOut (Err err) = hPutStrLn stderr err
+-- printOut :: (Show a, Show b) => Result a b -> IO ()
+-- printOut (Ok ok) = print ok
+-- printOut (Err err) = hPrint stderr err
 
-transpile :: String -> Result String Node.Module
-transpile input =
-  parseModule "main.pure" input
-    <!> show
-    >>= duplicateDefinitions
-      |> into
+transpile :: String -> String -> IO ()
+transpile path input =
+  case parseModule path input of
+    Err parseError -> print parseError
+    Ok parsedModule ->
+      case Check.typing parsedModule of
+        Err typingError -> mapM_ TypingError.printError typingError
+        Ok _ -> putStrLn $ "Compiled" +-+ ticked path +-+ "successfully."

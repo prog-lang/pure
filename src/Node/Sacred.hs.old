@@ -2,7 +2,7 @@
 
 module Node.Sacred where
 
--- KEYWORDS
+-- KEYWORDS --------------------------------------------------------------------
 
 const :: String
 const = "const"
@@ -31,7 +31,7 @@ false = "false"
 exports :: String
 exports = "module.exports"
 
--- SIGNS
+-- SIGNS -----------------------------------------------------------------------
 
 assign :: String
 assign = "="
