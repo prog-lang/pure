@@ -1,35 +1,24 @@
-type Bool is
-| True 
-| False
-;
+not :=
+  b ->
+    when b is
+      True then False,
+      False then True;
 
-fst :: a -> a -> a;
-fst := a -> b -> a;
+and :=
+  a -> b ->
+    when (a, b) is
+      (True, True) then True,
+      _ then False;
 
-snd :: a -> a -> a;
-snd := a -> b -> b;
+or :=
+  a -> b ->
+    when (a, b) is
+      (False, False) then False,
+      _ then True;
 
--- not :=
---   b ->
---     when b is
---       True then False,
---       False then True;
--- 
--- and :=
---   a -> b ->
---     when (a, b) is
---       (True, True) then True,
---       _ then False;
--- 
--- or :=
---   a -> b ->
---     when (a, b) is
---       (False, False) then False,
---       _ then True;
--- 
--- xor :=
---   a -> b ->
---     when (a, b) is
---       (True, False) then True,
---       (False, True) then True,
---       _ then False;
+xor :=
+  a -> b ->
+    when (a, b) is
+      (True, False) then True,
+      (False, True) then True,
+      _ then False;

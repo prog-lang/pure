@@ -9,15 +9,16 @@ module Node.Transpiler where
 
 import Data.Foldable (toList)
 import Data.List (singleton)
+import Node.Error (Error)
 import qualified Node.Node as Node
+import Node.Prep (prepare)
 import qualified Pure.Expr as Pure
 import Pure.Typing.Module (Def (..), Module (..), defs)
 import Utility.Convert (Into (..))
+import Utility.Result (Result)
 
-type Error = String
-
-transpile :: Module -> Node.Module
-transpile = into
+transpile :: Module -> Result Error Node.Module
+transpile = fmap into . prepare
 
 instance Module `Into` Node.Module where
   into modul =

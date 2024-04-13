@@ -31,8 +31,7 @@ title (Stack err _) = title err
 
 instance Show Error where
   show (PreparationError msg) = msg
-  show (UnboundVariableError v) =
-    "I can't resolve this name:" +-+ ticked v
+  show (UnboundVariableError v) = "I can't resolve this name:" +-+ ticked v
   show OccursCheckError = "Occurs check blew everything up!"
   show (UnificationError t t') =
     "I can't unify"

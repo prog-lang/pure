@@ -3,26 +3,26 @@ type Maybe t is
 | None
 ;
 
--- isNone :=
---   m ->
---     when m is
---       None then True
---       _ then False
--- 
--- isSome := compose isNone not;
--- 
--- maybe :=
---   x -> f -> m ->
---     when m is
---       Some v then f v,
---       _ then x;
--- 
--- unwrap := x -> m -> maybe x id m;
--- 
--- somes := ms -> compose (filter isSome) (map (unwrap default));
--- 
--- map := f -> maybe None (compose f Some);
--- swap := compose first map;
--- 
--- foldl := f -> x -> m -> maybe x (f x) m
--- foldr := compose flip foldl
+isNone :=
+  m ->
+    when m is
+      None then True
+      _ then False
+
+isSome := compose isNone not;
+
+maybe :=
+  x -> f -> m ->
+    when m is
+      Some v then f v,
+      _ then x;
+
+unwrap := x -> m -> maybe x id m;
+
+somes := ms -> compose (filter isSome) (map (unwrap default));
+
+map := f -> maybe None (compose f Some);
+swap := compose first map;
+
+foldl := f -> x -> m -> maybe x (f x) m
+foldr := compose flip foldl

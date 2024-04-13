@@ -72,11 +72,11 @@ instance Show Module where
   show (Module ss) = unlines $ map show ss
 
 instance Show Statement where
-  show (Const ident ex) = S.const +-+ ident +-+ S.assign +-+ show ex ++ S.semicolon
+  show (Const ident ex) = S.const_ +-+ ident +-+ S.assign +-+ show ex ++ S.semicolon
   show (Var ident ex) = S.var +-+ ident +-+ S.assign +-+ show ex ++ S.semicolon
   show (Let ident ex) = S.let_ +-+ ident +-+ S.assign +-+ show ex ++ S.semicolon
   show (Assign ident ex) = ident +-+ S.assign +-+ show ex ++ S.semicolon
-  show (Return ex) = S.return +-+ show ex ++ S.semicolon
+  show (Return ex) = S.return_ +-+ show ex ++ S.semicolon
   show (Exports ids) = S.exports +-+ S.assign +-+ array ids
   show (Function name ids ss) = S.function +-+ name ++ params +-+ body
     where

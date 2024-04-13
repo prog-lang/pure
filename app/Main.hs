@@ -2,12 +2,14 @@ module Main (main) where
 
 import CLI (Application, Command (..), application, runIO)
 import Data.Version (showVersion)
+import qualified Node.Error as NodeError
 import qualified Node.Transpiler as Node
 import Paths_pure (version)
 import Pure.Parser (parseModule)
 import qualified Pure.Parser as Parser
 import qualified Pure.Typing.Check as Check
 import qualified Pure.Typing.Error as TypingError
+import Pure.Typing.Module (Module)
 import Utility.Result (Result (..))
 
 main :: IO ()
@@ -42,5 +44,11 @@ parse path input =
 checkTypes :: Parser.Module -> IO ()
 checkTypes parsedModule =
   case Check.typing parsedModule of
-    Err typingError -> mapM_ TypingError.printError typingError
-    Ok modul -> print $ Node.transpile modul
+    Err err -> mapM_ TypingError.printError err
+    Ok modul -> codeGen modul
+
+codeGen :: Module -> IO ()
+codeGen modul =
+  case Node.transpile modul of
+    Err err -> NodeError.printError err
+    Ok code -> print code
