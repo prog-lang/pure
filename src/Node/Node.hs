@@ -10,11 +10,18 @@ module Node.Node
 where
 
 import qualified Node.Sacred as S
-import Utility.Strings (array, braced, commad, list, parenthesised, tuple, (+-+))
+import Utility.Common (Id)
+import Utility.Strings
+  ( array,
+    braced,
+    commad,
+    list,
+    parenthesised,
+    tuple,
+    (+-+),
+  )
 
 -- TYPES -----------------------------------------------------------------------
-
-type Id = String
 
 newtype Module = Module [Statement]
 

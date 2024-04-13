@@ -26,6 +26,9 @@ source-repository head
 library
   exposed-modules:
       CLI
+      Node.Node
+      Node.Sacred
+      Node.Transpiler
       Pure.Expr
       Pure.Parser
       Pure.Sacred

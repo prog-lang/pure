@@ -3,6 +3,7 @@ module Pure.Typing.Module
     Def (..),
     contextOf,
     names,
+    defs,
     exportsExistingNames,
     entrypointPresent,
   )
@@ -37,6 +38,11 @@ contextOf = Env.fromMap . Map.map snd . definitions
 
 names :: Module -> Set Id
 names = Map.keysSet . definitions
+
+defs :: Module -> [Def]
+defs = map repackage . Map.toList . definitions
+  where
+    repackage (name, (expr, scheme)) = Def name expr scheme
 
 -- CHECK -----------------------------------------------------------------------
 
