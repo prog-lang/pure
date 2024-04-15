@@ -1,0 +1,4 @@
+type List a is
+| Empty
+| Of Int a (List a)
+;
