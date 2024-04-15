@@ -1,0 +1,6 @@
+-- PROBLEM #1
+--
+-- Write a function that returns the last element of a list.
+--
+-- last :: List a -> Maybe a;
+-- last := undefined;

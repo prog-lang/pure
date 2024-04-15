@@ -17,7 +17,6 @@ module Pure.Parser
   )
 where
 
-import Control.Monad (liftM)
 import Data.Char (isLower, isLowerCase)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
@@ -33,11 +32,11 @@ import Text.Parsec
     alphaNum,
     between,
     char,
-    endBy,
     eof,
     getParserState,
     letter,
     many,
+    many1,
     oneOf,
     optionMaybe,
     parse,
@@ -174,13 +173,16 @@ moduleP = do
   return $ Module (allDefinitions ss) (allExports ss)
 
 statementsP :: Parser [Statement]
-statementsP = endBy statementP spacesP <* eof
+statementsP = spacesP *> many statementP <* eof
 
 statementP :: Parser Statement
 statementP = (try exportP <|> definitionP) <* lexemeP (char S.semicolon)
 
 exportP :: Parser Statement
-exportP = Export <$> (reservedP S.export *> parensP (sepBy nameP $ lexemeP $ char S.comma))
+exportP =
+  reservedP S.export
+    *> parensP (sepBy nameP $ lexemeP $ char S.comma)
+    <&> Export
 
 definitionP :: Parser Statement
 definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
@@ -210,7 +212,7 @@ typeConsP = do
   return $ Cons tag params
 
 typeP :: Parser Type
-typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP <?> "a type"
+typeP = parensP typeP <|> try typeFunctionP <|> taggedTypeP <?> "a type"
 
 typeFunctionP :: Parser Type
 typeFunctionP = do
@@ -246,7 +248,7 @@ defP = do
   return $ ValueDef name expr
 
 exprP :: Parser Expr
-exprP = ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"
+exprP = try ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"
 
 ifP :: Parser Expr
 ifP = do
@@ -263,33 +265,29 @@ notIfP = try lambdaP <|> try appP <|> literalP <?> "a condition"
 lambdaP :: Parser Expr
 lambdaP = do
   pos <- sourcePos
-  p <- paramP <?> "a named parameter"
+  param <- nameP <* reservedOp parser S.arrow <?> "a named parameter"
   expr <- exprP
-  return $ Lam p expr pos
-  where
-    paramP :: Parser String
-    paramP = nameP <* reservedOp parser S.arrow
+  return $ Lam param expr pos
 
 appP :: Parser Expr
 appP = do
   f <- callerP
-  _ <- spacesP
-  (x : xs) <- sepBy1 literalP spacesP
+  (x : xs) <- many1 literalP
   return $ foldl go (go f x) xs
   where
     go f x = App f x (positionOf f)
 
 callerP :: Parser Expr
-callerP = try (parensP exprP) <|> try qualifiedP <|> idP
+callerP = parensP exprP <|> try qualifiedP <|> idP
 
 literalP :: Parser Expr
 literalP =
-  try (parensP exprP)
-    <|> try listP
+  parensP exprP
+    <|> listP
+    <|> strP
     <|> try boolP
     <|> try qualifiedP
     <|> try idP
-    <|> try strP
     <|> try floatP
     <|> intP
 
@@ -342,7 +340,9 @@ reservedP = reserved parser
 upperNameP :: Parser Id
 upperNameP = do
   name <- nameP
-  if isLower $ head name then fail "an uppercase identifier" else return name
+  if isLower $ head name
+    then fail "an uppercase identifier"
+    else return name
 
 nameP :: Parser Id
 nameP = identifier parser
@@ -360,4 +360,4 @@ symbolP :: String -> Parser String
 symbolP = symbol parser
 
 sourcePos :: (Monad m) => ParsecT s u m SourcePos
-sourcePos = statePos `liftM` getParserState
+sourcePos = statePos `fmap` getParserState
