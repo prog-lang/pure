@@ -3,6 +3,7 @@
 module Pure.Typing.Type
   ( Type (..),
     Scheme (..),
+    typeVars,
     tType,
     tList,
     tStr,
@@ -26,10 +27,15 @@ data Type
   = Type :-> Type -- a -> b
   | Cons Id [Type] -- a b c
   | Var Id -- a
-  | Rigid Id
+  | Rigid Id -- a*
   deriving (Eq, Ord)
 
+-- SCHEME ----------------------------------------------------------------------
+
 data Scheme = [Id] :. Type deriving (Eq, Ord)
+
+typeVars :: Scheme -> [Id]
+typeVars (vs :. _) = vs
 
 -- TYPE CONSTRUCTORS -----------------------------------------------------------
 

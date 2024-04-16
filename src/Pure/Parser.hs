@@ -17,7 +17,7 @@ module Pure.Parser
   )
 where
 
-import Data.Char (isLower, isLowerCase)
+import Data.Char (isLowerCase, isUpperCase)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
@@ -108,18 +108,18 @@ isTypeHint _ = False
 instance Show Module where
   show (Module defs es) = unlines $ export : map show defs
     where
-      export = S.export +-+ tuple es ++ S.str S.semicolon
+      export = S.export +-+ tuple es ++ [S.semicolon]
 
 instance Show Def where
-  show (ValueDef name expr) = name +-+ S.walrus +-+ show expr ++ S.str S.semicolon
+  show (ValueDef name expr) = name +-+ S.walrus +-+ show expr ++ [S.semicolon]
   show (TypeDef name poly cons) =
     S.type_
       +-+ name
       +-+ unwords poly
       +-+ S.is
-      +\+ unlines (map ((S.str S.bar +-+) . show) cons)
-      ++ S.str S.semicolon
-  show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ S.str S.semicolon
+      +\+ unlines (map (([S.bar] +-+) . show) cons)
+      ++ [S.semicolon]
+  show (TypeHint name ty) = name +-+ S.typed +-+ show ty ++ [S.semicolon]
 
 -- STATEMENT -------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ allDefinitions :: [Statement] -> [Def]
 allDefinitions = mapMaybe toDefinition
 
 instance Show Statement where
-  show (Export ids) = S.export +-+ parenthesised (commad ids) ++ S.str S.semicolon
+  show (Export ids) = S.export +-+ parenthesised (commad ids) ++ [S.semicolon]
   show (Def def) = show def
 
 -- PARSER ----------------------------------------------------------------------
@@ -190,8 +190,8 @@ definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
 typeDefP :: Parser Def
 typeDefP = do
   _ <- reservedP S.type_
-  name <- nameP
-  params <- many nameP
+  name <- upperNameP
+  params <- many lowerNameP
   _ <- reservedP S.is >> barP
   cons <- sepBy1 typeConsP barP
   return $ TypeDef name params cons
@@ -212,7 +212,7 @@ typeConsP = do
   return $ Cons tag params
 
 typeP :: Parser Type
-typeP = parensP typeP <|> try typeFunctionP <|> taggedTypeP <?> "a type"
+typeP = try typeFunctionP <|> parensP typeP <|> taggedTypeP <?> "a type"
 
 typeFunctionP :: Parser Type
 typeFunctionP = do
@@ -300,7 +300,7 @@ listP = do
 qualifiedP :: Parser Expr
 qualifiedP = do
   pos <- sourcePos
-  qual <- sepBy1 nameP (char S.dot) <&> intercalate (S.str S.dot)
+  qual <- sepBy1 nameP (char S.dot) <&> intercalate [S.dot]
   return $ Id qual pos
 
 idP :: Parser Expr
@@ -340,8 +340,15 @@ reservedP = reserved parser
 upperNameP :: Parser Id
 upperNameP = do
   name <- nameP
-  if isLower $ head name
+  if isLowerCase $ head name
     then fail "an uppercase identifier"
+    else return name
+
+lowerNameP :: Parser Id
+lowerNameP = do
+  name <- nameP
+  if isUpperCase $ head name
+    then fail "a lowercase identifier"
     else return name
 
 nameP :: Parser Id

@@ -23,7 +23,8 @@ import Utility.Strings (commad, (+-+))
 -- MODULE ----------------------------------------------------------------------
 
 data Module = Module
-  { definitions :: Map Id (Expr, Scheme),
+  { typeDefs :: Map Id ([Id], [Scheme]),
+    definitions :: Map Id (Expr, Scheme),
     exports :: Set Id
   }
 
