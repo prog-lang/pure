@@ -5,7 +5,6 @@
 module Pure.Typing.Prep (prepare) where
 
 import Data.Foldable (toList)
-import Data.List (intercalate)
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (mapMaybe)
@@ -13,29 +12,25 @@ import Data.Set ((\\))
 import qualified Data.Set as Set
 import Pure.Expr (Expr)
 import qualified Pure.Parser as Parser
+import Pure.Typing.Error (Error (..))
 import Pure.Typing.Free (Free (..))
 import Pure.Typing.Module (Module (..))
 import qualified Pure.Typing.Module as Module
 import Pure.Typing.Type (Scheme (..), Type, typeVars)
 import Utility.Common (Id)
 import Utility.Result (Result (..))
-import Utility.Strings (commad, (+-+))
-
--- ERRORS ----------------------------------------------------------------------
-
-type Error = String
 
 -- CHECKS ----------------------------------------------------------------------
 
-typeHintVsDefMismatch :: Map Id a -> Map Id b -> Id
+typeHintVsDefMismatch :: Map Id a -> Map Id b -> [Error]
 typeHintVsDefMismatch thm dm =
   if Map.size thm > Map.size dm
-    then "These type hints miss their implementations:" +-+ noImpl
-    else "These definitions don't have a type hint:" +-+ noTypeHint
+    then map TypeHintMissesDefinition noImpl
+    else map DefinitionMissesTypeHint noTypeHint
   where
-    noImpl = curry commadDiff thm dm
-    noTypeHint = curry commadDiff dm thm
-    commadDiff = commad . Map.keys . uncurry Map.difference
+    noImpl = commadDiff (thm, dm)
+    noTypeHint = commadDiff (dm, thm)
+    commadDiff = Map.keys . uncurry Map.difference
 
 checkTypeDefs :: Map Id ([Id], [Scheme]) -> [Error]
 checkTypeDefs m =
@@ -45,34 +40,30 @@ checkTypeDefs m =
 
 typeDefHasUnboundVars :: (Id, ([Id], [Scheme])) -> Maybe Error
 typeDefHasUnboundVars (name, (vs, schemes)) =
-  if length ftvs > length svs
-    then
-      Just $
-        "Type definition" +-+ name +-+ "has unbound type variables:" +-+ unbound
+  if not (null unbound)
+    then Just $ UnboundTypeVariablesInTypeDef name unbound
     else Nothing
   where
     svs = Set.fromList vs
     ftvs = Set.fromList $ concatMap typeVars schemes
-    unbound = commad $ toList $ ftvs \\ svs
+    unbound = toList $ ftvs \\ svs
 
 typeDefHasUnusedVars :: (Id, ([Id], [Scheme])) -> Maybe Error
 typeDefHasUnusedVars (name, (vs, schemes)) =
-  if length ftvs < length svs
-    then
-      Just $
-        "Type definition" +-+ name +-+ "has unused type variables:" +-+ unused
+  if not (null unused)
+    then Just $ UnusedTypeVariablesInTypeDef name unused
     else Nothing
   where
     svs = Set.fromList vs
     ftvs = Set.fromList $ concatMap typeVars schemes
-    unused = commad $ toList $ svs \\ ftvs
+    unused = toList $ svs \\ ftvs
 
 -- CONVERT ---------------------------------------------------------------------
 
-prepare :: Parser.Module -> Result Error Module
+prepare :: Parser.Module -> Result [Error] Module
 prepare pm
   | Map.size thm /= Map.size dm = Err $ typeHintVsDefMismatch thm dm
-  | not (null typeDefErrors) = Err $ intercalate "\n\n" typeDefErrors
+  | not (null typeDefErrors) = Err typeDefErrors
   | otherwise =
       Module.exportsExistingNames $
         Module

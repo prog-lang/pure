@@ -1,0 +1,4 @@
+type Result err ok is
+| Err err
+| Ok ok
+;

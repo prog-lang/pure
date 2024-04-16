@@ -5,7 +5,6 @@ module Pure.Typing.Module
     names,
     defs,
     exportsExistingNames,
-    entrypointPresent,
   )
 where
 
@@ -15,10 +14,10 @@ import Data.Set (Set, isSubsetOf, toList, (\\))
 import Pure.Expr (Expr)
 import Pure.Typing.Env (Context)
 import qualified Pure.Typing.Env as Env
+import Pure.Typing.Error (Error (..))
 import Pure.Typing.Type (Scheme (..))
 import Utility.Common (Id)
 import Utility.Result (Result (..))
-import Utility.Strings (commad, (+-+))
 
 -- MODULE ----------------------------------------------------------------------
 
@@ -47,23 +46,12 @@ defs = map repackage . Map.toList . definitions
 
 -- CHECK -----------------------------------------------------------------------
 
-type Error = String
-
-exportsExistingNames :: Module -> Result Error Module
+exportsExistingNames :: Module -> Result [Error] Module
 exportsExistingNames modul =
   if es `isSubsetOf` ns
     then Ok modul
-    else Err $ "Module exports undefined identifiers:" +-+ diff
+    else Err $ map ModuleExportsUndefinedIdentifier diff
   where
     es = exports modul
     ns = names modul
-    diff = commad $ toList $ es \\ ns
-
-entrypointPresent :: Module -> Result Error Module
-entrypointPresent modul =
-  if elem entrypoint $ names modul
-    then Ok modul
-    else Err err
-  where
-    err = "Entrypoint missing: " ++ entrypoint
-    entrypoint = "main"
+    diff = toList $ es \\ ns
