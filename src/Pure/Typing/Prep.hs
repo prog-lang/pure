@@ -16,7 +16,7 @@ import Pure.Typing.Error (Error (..))
 import Pure.Typing.Free (Free (..))
 import Pure.Typing.Module (Module (..))
 import qualified Pure.Typing.Module as Module
-import Pure.Typing.Type (Scheme (..), Type, typeVars)
+import Pure.Typing.Type (Scheme (..), Type (..), typeVars)
 import Utility.Common (Id)
 import Utility.Result (Result (..))
 
@@ -68,6 +68,7 @@ prepare pm
       Module.exportsExistingNames $
         Module
           { typeDefs = tds,
+            typeCons = collectTypeCons defs,
             definitions = ds,
             exports = exps
           }
@@ -84,13 +85,23 @@ prepare pm
 collectTypeDefs :: [Parser.Def] -> Map Id ([Id], [Scheme])
 collectTypeDefs = Map.fromList . mapMaybe unwrapTypeDef
   where
-    unwrapTypeDef (Parser.TypeDef i ps ops) = Just (i, (ps, map scheme ops))
+    unwrapTypeDef (Parser.TypeDef i ps ops) = Just (i, (ps, map schemeOf ops))
+    unwrapTypeDef _ = Nothing
+
+collectTypeCons :: [Parser.Def] -> Map Id Scheme
+collectTypeCons = Map.fromList . concat . mapMaybe unwrapTypeDef
+  where
+    constructor ty ps (Cons name params) = (name, schemeOf tyFunc)
+      where
+        tyFunc = foldr (:->) (Cons ty $ map Var ps) params
+    constructor _ _ _ = undefined
+    unwrapTypeDef (Parser.TypeDef i ps ops) = Just $ map (constructor i ps) ops
     unwrapTypeDef _ = Nothing
 
 makeTypeHintMap :: [Parser.Def] -> Map Id Scheme
 makeTypeHintMap = Map.fromList . mapMaybe unwrapTypeHint
   where
-    unwrapTypeHint (Parser.TypeHint i th) = Just (i, scheme th)
+    unwrapTypeHint (Parser.TypeHint i th) = Just (i, schemeOf th)
     unwrapTypeHint _ = Nothing
 
 makeDefMap :: [Parser.Def] -> Map Id Expr
@@ -101,5 +112,5 @@ makeDefMap = Map.fromList . mapMaybe unwrapDefinition
 
 -- HELPERS ---------------------------------------------------------------------
 
-scheme :: Type -> Scheme
-scheme t = toList (free t) :. t
+schemeOf :: Type -> Scheme
+schemeOf t = toList (free t) :. t

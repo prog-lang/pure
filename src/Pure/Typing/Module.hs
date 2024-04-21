@@ -23,6 +23,7 @@ import Utility.Result (Result (..))
 
 data Module = Module
   { typeDefs :: Map Id ([Id], [Scheme]),
+    typeCons :: Map Id Scheme,
     definitions :: Map Id (Expr, Scheme),
     exports :: Set Id
   }
@@ -32,7 +33,9 @@ data Def = Def Id Expr Scheme deriving (Eq)
 -- TRANSFORM -------------------------------------------------------------------
 
 contextOf :: Module -> Context
-contextOf = Env.fromMap . Map.map snd . definitions
+contextOf modul =
+  Env.fromMap $
+    Map.union (typeCons modul) (Map.map snd $ definitions modul)
 
 -- QUERY -----------------------------------------------------------------------
 

@@ -2,3 +2,6 @@ type List a is
 | Empty
 | Of Int a (List a)
 ;
+
+of :: a -> List a -> List a;
+of := a -> as -> Of a as;
