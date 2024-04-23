@@ -2,7 +2,6 @@
 
 module Pure.Sacred where
 
-import Data.List (singleton)
 import qualified Data.List as List
 
 -- KEYWORDS --------------------------------------------------------------------
@@ -40,7 +39,7 @@ false = show False
 -- SIGNS -----------------------------------------------------------------------
 
 operators :: [String]
-operators = [walrus, arrow, typed, str minus]
+operators = [walrus, arrow, typed, [minus]]
 
 walrus :: String
 walrus = ":="
@@ -80,8 +79,3 @@ minus = '-'
 
 bar :: Char
 bar = '|'
-
--- UTILS -----------------------------------------------------------------------
-
-str :: Char -> String
-str = singleton

@@ -26,7 +26,7 @@ import Utility.Fun ((|>))
 import Utility.Pretty (printSection)
 import Utility.Result (Result (..))
 import qualified Utility.Result as Result
-import Utility.Strings ((+-+), (+\\+))
+import Utility.Strings (base26, (+-+), (+\\+))
 
 -- TYPES -----------------------------------------------------------------------
 
@@ -112,6 +112,9 @@ infer ctx (Lam binder body _) = do
 unify :: Type -> Type -> TI Subst
 unify (Var u) t = varBind u t
 unify t (Var u) = varBind u t
+unify t@(Rigid x) r@(Rigid y)
+  | x == y = return Env.empty
+  | otherwise = throwUnificationError t r
 unify t@(Cons i []) r@(Cons i' [])
   | i == i' = return Env.empty
   | otherwise = throwUnificationError t r
@@ -125,22 +128,19 @@ unify (l :-> r) (l' :-> r') = do
   s1 <- unify l l'
   s2 <- unify (s1 +-> r) (s1 +-> r')
   return $ s2 <:> s1
-unify t@(Rigid x) r@(Rigid y)
-  | x == y = return Env.empty
-  | otherwise = throwUnificationError t r
 unify t r = throwUnificationError t r
 
 var :: TI Type
 var = do
-  s <- get
-  put $ s + 1
-  return $ Var $ "v" ++ show s
+  i <- get
+  put $ i + 1
+  return $ Var $ base26 i
 
 rigid :: TI Type
 rigid = do
-  s <- get
-  put $ s + 1
-  return $ Rigid $ "r" ++ show s
+  i <- get
+  put $ i + 1
+  return $ Rigid $ base26 i ++ "*"
 
 -- | Creates a fresh unification variable and binds it to the given type
 varBind :: Id -> Type -> TI Subst

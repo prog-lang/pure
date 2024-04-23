@@ -12,7 +12,7 @@ module Utility.Strings
     array,
     tuple,
     list,
-    numbered,
+    base26,
     trimSpaces,
     (>*),
     (+-+),
@@ -22,9 +22,8 @@ module Utility.Strings
   )
 where
 
-import Data.Char (isSpace)
+import Data.Char (chr, isSpace)
 import Data.List (intercalate)
-import Utility.Fun ((!>))
 
 class Parens a where
   parens :: a -> String
@@ -85,5 +84,11 @@ li = (tab ++)
 trimSpaces :: String -> String
 trimSpaces = reverse . dropWhile isSpace . reverse
 
-numbered :: [a] -> [String]
-numbered = length !> flip take [1 ..] !> map show !> map ("_" ++)
+base26 :: (Integral a) => a -> String
+base26 0 = "a"
+base26 n = aux "" n
+  where
+    aux acc 0 = acc
+    aux acc i =
+      let (q, r) = i `divMod` 26
+       in aux (chr (97 + fromIntegral r) : acc) q

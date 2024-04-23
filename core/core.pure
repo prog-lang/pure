@@ -4,7 +4,7 @@ id := a -> a;
 first :: a -> b -> a;
 first := a -> _ -> a;
 
-second :: a -> b -> b;
+second :: a -> b -> a;
 second := _ -> b -> b;
 
 flip :: (a -> b -> c) -> b -> a -> c;

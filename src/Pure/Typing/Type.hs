@@ -3,6 +3,10 @@
 module Pure.Typing.Type
   ( Type (..),
     Scheme (..),
+    typeVars,
+    final,
+    called,
+    numberOfParams,
     tType,
     tList,
     tStr,
@@ -26,10 +30,31 @@ data Type
   = Type :-> Type -- a -> b
   | Cons Id [Type] -- a b c
   | Var Id -- a
-  | Rigid Id
+  | Rigid Id -- a*
   deriving (Eq, Ord)
 
+-- SCHEME ----------------------------------------------------------------------
+
 data Scheme = [Id] :. Type deriving (Eq, Ord)
+
+typeVars :: Scheme -> [Id]
+typeVars (vs :. _) = vs
+
+-- INSPECT ---------------------------------------------------------------------
+
+final :: Type -> Type
+final (_ :-> ty) = final ty
+final ty = ty
+
+called :: Type -> String
+called (_ :-> _) = "Arrow"
+called (Cons name _) = name
+called (Var name) = name
+called (Rigid name) = name
+
+numberOfParams :: Type -> Int
+numberOfParams (_ :-> ty) = 1 + numberOfParams ty
+numberOfParams _ = 0
 
 -- TYPE CONSTRUCTORS -----------------------------------------------------------
 

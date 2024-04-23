@@ -1,7 +1,6 @@
 module Pure.Typing.Check (typing, check, checkDef) where
 
 import Control.Monad.Error.Class (withError)
-import qualified Data.List as List
 import Pure.Expr (positionOf)
 import qualified Pure.Parser as Parser
 import Pure.Typing.Error (Error (..))
@@ -9,16 +8,12 @@ import Pure.Typing.Infer (Context, assert, evalTI)
 import Pure.Typing.Module (Def (..), Module (..), contextOf, defs)
 import Pure.Typing.Prep (prepare)
 import Pure.Typing.Type (Scheme (..))
-import Utility.Fun ((!>))
-import Utility.Result (Result (..), collect, mapErr)
+import Utility.Result (Result (..), collect)
 
 -- CHECKS ----------------------------------------------------------------------
 
 typing :: Parser.Module -> Result [Error] Module
-typing =
-  prepare
-    !> mapErr (PreparationError !> List.singleton)
-    !> (>>= check)
+typing modul = prepare modul >>= check
 
 check :: Module -> Result [Error] Module
 check modul = fmap (const modul) $ collect $ map (checkDef ctx) $ defs modul

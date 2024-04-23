@@ -15,6 +15,9 @@ class Free a where
   -- | @free@ gets free type variables.
   free :: a -> Set Id
 
+instance (Free a) => Free [a] where
+  free = Set.unions . map free
+
 instance Free Type where
   free (Var v) = Set.singleton v
   free (Rigid v) = Set.singleton v
