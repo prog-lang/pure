@@ -7,5 +7,7 @@ of :: a -> List a -> List a;
 of := a -> as -> Of 42 a as;
 
 export (
+    Empty,
+    Of,
     of
 );

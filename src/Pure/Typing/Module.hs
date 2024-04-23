@@ -13,6 +13,7 @@ where
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set, isSubsetOf, toList, (\\))
+import qualified Data.Set as Set
 import Pure.Expr (Expr)
 import Pure.Typing.Env (Context)
 import qualified Pure.Typing.Env as Env
@@ -44,7 +45,10 @@ contextOf modul =
 -- QUERY -----------------------------------------------------------------------
 
 names :: Module -> Set Id
-names = Map.keysSet . definitions
+names modul =
+  Set.union
+    (Map.keysSet $ definitions modul)
+    (Map.keysSet $ typeCons modul)
 
 defs :: Module -> [Def]
 defs = map repackage . Map.toList . definitions
