@@ -4,4 +4,8 @@ type List a is
 ;
 
 of :: a -> List a -> List a;
-of := a -> as -> Of a as;
+of := a -> as -> Of 42 a as;
+
+export (
+    of
+);

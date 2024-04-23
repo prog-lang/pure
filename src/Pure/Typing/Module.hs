@@ -1,9 +1,11 @@
 module Pure.Typing.Module
   ( Module (..),
     Def (..),
+    TypeCons (..),
     contextOf,
     names,
     defs,
+    cons,
     exportsExistingNames,
   )
 where
@@ -30,6 +32,8 @@ data Module = Module
 
 data Def = Def Id Expr Scheme deriving (Eq)
 
+data TypeCons = TypeCons Id Scheme deriving (Eq)
+
 -- TRANSFORM -------------------------------------------------------------------
 
 contextOf :: Module -> Context
@@ -46,6 +50,9 @@ defs :: Module -> [Def]
 defs = map repackage . Map.toList . definitions
   where
     repackage (name, (expr, scheme)) = Def name expr scheme
+
+cons :: Module -> [TypeCons]
+cons = map (uncurry TypeCons) . Map.toList . typeCons
 
 -- CHECK -----------------------------------------------------------------------
 

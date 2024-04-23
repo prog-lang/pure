@@ -12,7 +12,6 @@ module Utility.Strings
     array,
     tuple,
     list,
-    numbered,
     base26,
     trimSpaces,
     (>*),
@@ -25,7 +24,6 @@ where
 
 import Data.Char (chr, isSpace)
 import Data.List (intercalate)
-import Utility.Fun ((!>))
 
 class Parens a where
   parens :: a -> String
@@ -85,9 +83,6 @@ li = (tab ++)
 
 trimSpaces :: String -> String
 trimSpaces = reverse . dropWhile isSpace . reverse
-
-numbered :: [a] -> [String]
-numbered = length !> flip take [1 ..] !> map show !> map ("_" ++)
 
 base26 :: (Integral a) => a -> String
 base26 0 = "a"
