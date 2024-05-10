@@ -10,7 +10,7 @@ isKeyword :: String -> Bool
 isKeyword = flip List.elem keywords
 
 keywords :: [String]
-keywords = [export, if_, then_, else_, type_, is]
+keywords = [export, if_, then_, else_, type_, when, is]
 
 export :: String
 export = "export"
@@ -26,6 +26,9 @@ else_ = "else"
 
 type_ :: String
 type_ = "type"
+
+when :: String
+when = "when"
 
 is :: String
 is = "is"

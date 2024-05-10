@@ -15,7 +15,7 @@ import Control.Monad.Except (ExceptT, runExceptT, throwError, withError)
 import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
 import qualified Data.Set as Set
-import Pure.Expr (Expr (..))
+import Pure.Expr (Expr (..), Literal (..))
 import Pure.Typing.Env (Apply (..), Env (..), (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Error (Error (..))
@@ -71,41 +71,47 @@ assert' ctx hint expr = do
   s2 <- unify tyHint tyExpr
   return $ generalize ctx (s2 <:> s1 +-> tyHint)
 
-infer :: Context -> Expr -> TI (Subst, Type)
-infer _ (Bool _ _) = return (Env.empty, tBool)
-infer _ (Int _ _) = return (Env.empty, tInt)
-infer _ (Float _ _) = return (Env.empty, tFloat)
-infer _ (Str _ _) = return (Env.empty, tStr)
-infer ctx (Id i _) =
-  case Env.typeOf i ctx of
-    Nothing -> throwUnboundVariableError i
-    Just scheme -> instantiate scheme <&> (,) Env.empty
-infer _ (List [] _) = var <&> (,) Env.empty
-infer ctx (List (x : xs) pos) = do
-  (s1, tx) <- infer ctx x
-  (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
-  s3 <- unify (tList tx) txs
-  return (s3 <:> s2 <:> s1, s3 +-> txs)
-infer ctx (App fun arg _) = do
-  (s1, tyFun) <- infer ctx fun
-  (s2, tyArg) <- infer (s1 +-> ctx) arg
-  tyRes <- var
-  s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
-  return (s3 <:> s2 <:> s1, s3 +-> tyRes)
-infer ctx (If condition e1 e2 _) = do
-  (s1, t1) <- infer ctx condition
-  (s2, t2) <- infer (s1 +-> ctx) e1
-  (s3, t3) <- infer (s2 <:> s1 +-> ctx) e2
-  s4 <- unify (s3 <:> s2 <:> s1 +-> t1) tBool
-  s5 <- unify (s4 <:> s3 <:> s2 <:> s1 +-> t2) t3
-  let s = s5 <:> s4 <:> s3 <:> s2 <:> s1
-  let t = s +-> t2
-  return (s, t)
-infer ctx (Lam binder body _) = do
-  tyBinder <- var
-  let tmpCtx = Env.insert binder ([] :. tyBinder) ctx
-  (s1, tyBody) <- infer tmpCtx body
-  return (s1, (s1 +-> tyBinder) :-> tyBody)
+class Infer a where
+  infer :: Context -> a -> TI (Subst, Type)
+
+instance Infer Literal where
+  infer _ (Bool _) = return (Env.empty, tBool)
+  infer _ (Int _) = return (Env.empty, tInt)
+  infer _ (Float _) = return (Env.empty, tFloat)
+  infer _ (Str _) = return (Env.empty, tStr)
+  infer ctx (Id i) =
+    case Env.typeOf i ctx of
+      Nothing -> throwUnboundVariableError i
+      Just scheme -> instantiate scheme <&> (,) Env.empty
+  infer _ (List []) = var <&> (,) Env.empty
+  infer ctx (List (x : xs)) = do
+    (s1, tx) <- infer ctx x
+    (s2, txs) <- infer (s1 +-> ctx) (List xs)
+    s3 <- unify (tList tx) txs
+    return (s3 <:> s2 <:> s1, s3 +-> txs)
+
+instance Infer Expr where
+  infer ctx (Literal literal _) = infer ctx literal
+  infer ctx (App fun arg _) = do
+    (s1, tyFun) <- infer ctx fun
+    (s2, tyArg) <- infer (s1 +-> ctx) arg
+    tyRes <- var
+    s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
+    return (s3 <:> s2 <:> s1, s3 +-> tyRes)
+  infer ctx (If condition e1 e2 _) = do
+    (s1, t1) <- infer ctx condition
+    (s2, t2) <- infer (s1 +-> ctx) e1
+    (s3, t3) <- infer (s2 <:> s1 +-> ctx) e2
+    s4 <- unify (s3 <:> s2 <:> s1 +-> t1) tBool
+    s5 <- unify (s4 <:> s3 <:> s2 <:> s1 +-> t2) t3
+    let s = s5 <:> s4 <:> s3 <:> s2 <:> s1
+    let t = s +-> t2
+    return (s, t)
+  infer ctx (Lam binder body _) = do
+    tyBinder <- var
+    let tmpCtx = Env.insert binder ([] :. tyBinder) ctx
+    (s1, tyBody) <- infer tmpCtx body
+    return (s1, (s1 +-> tyBinder) :-> tyBody)
 
 -- HELPERS ---------------------------------------------------------------------
 

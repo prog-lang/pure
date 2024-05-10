@@ -4,7 +4,6 @@
 
 module Pure.Parser
   ( Module (..),
-    Id,
     moduleNames,
     assignmentNames,
     typeHintNames,
@@ -21,7 +20,7 @@ import Data.Char (isLowerCase, isUpperCase)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
-import Pure.Expr (Expr (..), positionOf)
+import Pure.Expr (Expr (..), Literal (..), positionOf)
 import qualified Pure.Sacred as S
 import Pure.Typing.Type (Type (..))
 import Text.Parsec
@@ -248,7 +247,26 @@ defP = do
   return $ ValueDef name expr
 
 exprP :: Parser Expr
-exprP = try ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"
+exprP =
+  try whenP
+    <|> try ifP
+    <|> try lambdaP
+    <|> try appP
+    <|> literalP
+    <?> "an expression"
+
+whenP :: Parser Expr
+whenP = do
+  pos <- sourcePos
+  e <- between (reservedP S.when) (reservedP S.is) notIfP
+  brs <- barP >> sepBy1 branchP barP
+  return $ When e brs pos
+  where
+    barP = reservedOp parser [S.bar]
+    branchP = do
+      pat <- literalP <* reservedP S.then_
+      result <- exprP
+      return (pat, result)
 
 ifP :: Parser Expr
 ifP = do
@@ -295,44 +313,45 @@ listP :: Parser Expr
 listP = do
   pos <- sourcePos
   list <- brackets parser $ commaSep1 parser exprP
-  return $ List list pos
+  return $ Literal (List list) pos
 
 qualifiedP :: Parser Expr
 qualifiedP = do
   pos <- sourcePos
   qual <- sepBy1 nameP (char S.dot) <&> intercalate [S.dot]
-  return $ Id qual pos
+  return $ Literal (Id qual) pos
 
 idP :: Parser Expr
 idP = do
   pos <- sourcePos
   name <- nameP
-  return $ Id name pos
+  return $ Literal (Id name) pos
 
 strP :: Parser Expr
 strP = do
   pos <- sourcePos
   str <- stringLiteral parser
-  return $ Str str pos
+  return $ Literal (Str str) pos
 
 floatP :: Parser Expr
 floatP = do
   pos <- sourcePos
   sign <- optionMaybe $ char S.minus
   number <- float parser
-  return $ Float (if isJust sign then -number else number) pos
+  let flt = Float (if isJust sign then -number else number)
+  return $ Literal flt pos
 
 intP :: Parser Expr
 intP = do
   pos <- sourcePos
   int <- integer parser
-  return $ Int int pos
+  return $ Literal (Int int) pos
 
 boolP :: Parser Expr
 boolP = do
   pos <- sourcePos
   b <- symbolP S.true <|> symbolP S.false
-  return $ Bool (read b) pos
+  return $ Literal (Bool (read b)) pos
 
 reservedP :: String -> Parser ()
 reservedP = reserved parser
