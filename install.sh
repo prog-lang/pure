@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-git clone git@github.com:prog-lang/purist.git
-cd purist
+git clone git@github.com:prog-lang/pure.git
+cd pure
 stack install
 cd ..
-rm -rf purist
+rm -rf pure

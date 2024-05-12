@@ -188,11 +188,9 @@ definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
 
 typeDefP :: Parser Def
 typeDefP = do
-  _ <- reservedP S.type_
-  name <- upperNameP
+  name <- reservedP S.type_ >> upperNameP
   params <- many lowerNameP
-  _ <- reservedP S.is >> barP
-  cons <- sepBy1 typeConsP barP
+  cons <- reservedP S.is >> barP >> sepBy1 typeConsP barP
   return $ TypeDef name params cons
   where
     barP = reservedOp parser [S.bar]
@@ -200,8 +198,7 @@ typeDefP = do
 typeHintP :: Parser Def
 typeHintP = do
   name <- nameP
-  _ <- reservedOp parser S.typed
-  ty <- typeP
+  ty <- reservedOp parser S.typed >> typeP
   return $ TypeHint name ty
 
 typeConsP :: Parser Type
@@ -242,8 +239,7 @@ typeVarP = do
 defP :: Parser Def
 defP = do
   name <- nameP
-  _ <- reservedOp parser S.walrus
-  expr <- exprP
+  expr <- reservedOp parser S.walrus >> exprP
   return $ ValueDef name expr
 
 exprP :: Parser Expr
