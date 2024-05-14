@@ -11,7 +11,7 @@ import Utility.Strings (Parens (..), list, parenthesised, (+-+))
 
 data Expr
   = Lam Id Expr SourcePos
-  | When Expr [(Expr, Expr)] SourcePos
+  | When Expr [(Literal, Expr)] SourcePos
   | If Expr Expr Expr SourcePos
   | App Expr Expr SourcePos
   | Literal Literal

@@ -260,7 +260,7 @@ whenP = do
   where
     barP = reservedOp parser [S.bar]
     branchP = do
-      pat <- literalP <* reservedP S.then_
+      pat <- litP <* reservedP S.then_
       result <- exprP
       return (pat, result)
 
@@ -292,12 +292,14 @@ appP = do
     go f x = App f x (positionOf f)
 
 callerP :: Parser Expr
-callerP = parensP exprP <|> try qualifiedP <|> idP
+callerP = parensP exprP <|> try (qualifiedP <&> Literal) <|> (idP <&> Literal)
 
 literalP :: Parser Expr
-literalP =
-  parensP exprP
-    <|> listP
+literalP = parensP exprP <|> (litP <&> Literal)
+
+litP :: Parser Literal
+litP =
+  listP
     <|> strP
     <|> try boolP
     <|> try qualifiedP
@@ -305,49 +307,48 @@ literalP =
     <|> try floatP
     <|> intP
 
-listP :: Parser Expr
+listP :: Parser Literal
 listP = do
   pos <- sourcePos
   list <- brackets parser $ commaSep1 parser exprP
-  return $ Literal $ List list pos
+  return $ List list pos
 
-qualifiedP :: Parser Expr
+qualifiedP :: Parser Literal
 qualifiedP = do
   pos <- sourcePos
   qual <- sepBy1 nameP (char S.dot) <&> intercalate [S.dot]
-  return $ Literal $ Id qual pos
+  return $ Id qual pos
 
-idP :: Parser Expr
+idP :: Parser Literal
 idP = do
   pos <- sourcePos
   name <- nameP
-  return $ Literal $ Id name pos
+  return $ Id name pos
 
-strP :: Parser Expr
+strP :: Parser Literal
 strP = do
   pos <- sourcePos
   str <- stringLiteral parser
-  return $ Literal $ Str str pos
+  return $ Str str pos
 
-floatP :: Parser Expr
+floatP :: Parser Literal
 floatP = do
   pos <- sourcePos
   sign <- optionMaybe $ char S.minus
   number <- float parser
-  let flt = Float (if isJust sign then -number else number) pos
-  return $ Literal flt
+  return $ Float (if isJust sign then -number else number) pos
 
-intP :: Parser Expr
+intP :: Parser Literal
 intP = do
   pos <- sourcePos
   int <- integer parser
-  return $ Literal $ Int int pos
+  return $ Int int pos
 
-boolP :: Parser Expr
+boolP :: Parser Literal
 boolP = do
   pos <- sourcePos
   b <- symbolP S.true <|> symbolP S.false
-  return $ Literal $ Bool (read b) pos
+  return $ Bool (read b) pos
 
 reservedP :: String -> Parser ()
 reservedP = reserved parser
