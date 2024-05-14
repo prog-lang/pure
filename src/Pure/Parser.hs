@@ -309,45 +309,45 @@ listP :: Parser Expr
 listP = do
   pos <- sourcePos
   list <- brackets parser $ commaSep1 parser exprP
-  return $ Literal (List list) pos
+  return $ Literal $ List list pos
 
 qualifiedP :: Parser Expr
 qualifiedP = do
   pos <- sourcePos
   qual <- sepBy1 nameP (char S.dot) <&> intercalate [S.dot]
-  return $ Literal (Id qual) pos
+  return $ Literal $ Id qual pos
 
 idP :: Parser Expr
 idP = do
   pos <- sourcePos
   name <- nameP
-  return $ Literal (Id name) pos
+  return $ Literal $ Id name pos
 
 strP :: Parser Expr
 strP = do
   pos <- sourcePos
   str <- stringLiteral parser
-  return $ Literal (Str str) pos
+  return $ Literal $ Str str pos
 
 floatP :: Parser Expr
 floatP = do
   pos <- sourcePos
   sign <- optionMaybe $ char S.minus
   number <- float parser
-  let flt = Float (if isJust sign then -number else number)
-  return $ Literal flt pos
+  let flt = Float (if isJust sign then -number else number) pos
+  return $ Literal flt
 
 intP :: Parser Expr
 intP = do
   pos <- sourcePos
   int <- integer parser
-  return $ Literal (Int int) pos
+  return $ Literal $ Int int pos
 
 boolP :: Parser Expr
 boolP = do
   pos <- sourcePos
   b <- symbolP S.true <|> symbolP S.false
-  return $ Literal (Bool (read b)) pos
+  return $ Literal $ Bool (read b) pos
 
 reservedP :: String -> Parser ()
 reservedP = reserved parser

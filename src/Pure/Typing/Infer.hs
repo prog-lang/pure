@@ -71,23 +71,23 @@ class Infer a where
   infer :: Context -> a -> TI (Subst, Type)
 
 instance Infer Literal where
-  infer _ (Bool _) = return (Env.empty, tBool)
-  infer _ (Int _) = return (Env.empty, tInt)
-  infer _ (Float _) = return (Env.empty, tFloat)
-  infer _ (Str _) = return (Env.empty, tStr)
-  infer ctx (Id i) =
+  infer _ (Bool _ _) = return (Env.empty, tBool)
+  infer _ (Int _ _) = return (Env.empty, tInt)
+  infer _ (Float _ _) = return (Env.empty, tFloat)
+  infer _ (Str _ _) = return (Env.empty, tStr)
+  infer ctx (Id i _) =
     case Env.typeOf i ctx of
       Nothing -> throwUnboundVariableError i
       Just scheme -> instantiate scheme <&> (,) Env.empty
-  infer _ (List []) = var <&> (,) Env.empty
-  infer ctx (List (x : xs)) = do
+  infer _ (List [] _) = var <&> (,) Env.empty
+  infer ctx (List (x : xs) pos) = do
     (s1, tx) <- infer ctx x
-    (s2, txs) <- infer (s1 +-> ctx) (List xs)
+    (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
     s3 <- unify (tList tx) txs
     return (s3 <:> s2 <:> s1, s3 +-> txs)
 
 instance Infer Expr where
-  infer ctx (Literal literal _) = infer ctx literal
+  infer ctx (Literal literal) = infer ctx literal
   infer ctx (App fun arg _) = do
     (s1, tyFun) <- infer ctx fun
     (s2, tyArg) <- infer (s1 +-> ctx) arg
