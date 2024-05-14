@@ -20,7 +20,7 @@ import Data.Char (isLowerCase, isUpperCase)
 import Data.Functor ((<&>))
 import Data.List (intercalate)
 import Data.Maybe (isJust, mapMaybe)
-import Pure.Expr (Expr (..), Literal (..), positionOf)
+import Pure.Expr (Expr (..), positionOf)
 import qualified Pure.Sacred as S
 import Pure.Typing.Type (Type (..))
 import Text.Parsec
@@ -279,7 +279,7 @@ notIfP = try lambdaP <|> try appP <|> literalP <?> "a condition"
 lambdaP :: Parser Expr
 lambdaP = do
   pos <- sourcePos
-  param <- nameP <* reservedOp parser S.arrow <?> "a named parameter"
+  param <- lowerNameP <* reservedOp parser S.arrow <?> "a named parameter"
   expr <- exprP
   return $ Lam param expr pos
 
@@ -292,12 +292,12 @@ appP = do
     go f x = App f x (positionOf f)
 
 callerP :: Parser Expr
-callerP = parensP exprP <|> try (qualifiedP <&> Literal) <|> (idP <&> Literal)
+callerP = parensP exprP <|> try qualifiedP <|> idP
 
 literalP :: Parser Expr
-literalP = parensP exprP <|> (litP <&> Literal)
+literalP = parensP exprP <|> litP
 
-litP :: Parser Literal
+litP :: Parser Expr
 litP =
   strP
     <|> try boolP
@@ -306,44 +306,44 @@ litP =
     <|> try floatP
     <|> intP
 
--- listP :: Parser Literal
+-- listP :: Parser Expr
 -- listP = do
 --   pos <- sourcePos
 --   list <- brackets parser $ commaSep1 parser exprP
 --   return $ List list pos
 
-qualifiedP :: Parser Literal
+qualifiedP :: Parser Expr
 qualifiedP = do
   pos <- sourcePos
   qual <- sepBy1 nameP (char S.dot) <&> intercalate [S.dot]
   return $ Id qual pos
 
-idP :: Parser Literal
+idP :: Parser Expr
 idP = do
   pos <- sourcePos
   name <- nameP
   return $ Id name pos
 
-strP :: Parser Literal
+strP :: Parser Expr
 strP = do
   pos <- sourcePos
   str <- stringLiteral parser
   return $ Str str pos
 
-floatP :: Parser Literal
+floatP :: Parser Expr
 floatP = do
   pos <- sourcePos
   sign <- optionMaybe $ char S.minus
   number <- float parser
   return $ Float (if isJust sign then -number else number) pos
 
-intP :: Parser Literal
+intP :: Parser Expr
 intP = do
   pos <- sourcePos
   int <- integer parser
   return $ Int int pos
 
-boolP :: Parser Literal
+boolP :: Parser Expr
 boolP = do
   pos <- sourcePos
   b <- symbolP S.true <|> symbolP S.false

@@ -14,8 +14,9 @@ where
 import Control.Monad.Except (ExceptT, runExceptT, throwError, withError)
 import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
+import Data.Set ((\\))
 import qualified Data.Set as Set
-import Pure.Expr (Expr (..), Literal (..))
+import Pure.Expr (Expr (..))
 import Pure.Typing.Env (Apply (..), Context, Subst, (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Error (Error (..))
@@ -67,48 +68,44 @@ assert' ctx hint expr = do
   s2 <- unify tyHint tyExpr
   return $ generalize ctx (s2 <:> s1 +-> tyHint)
 
-class Infer a where
-  infer :: Context -> a -> TI (Subst, Type)
-
-instance Infer Literal where
-  infer _ (Bool _ _) = return (Env.empty, tBool)
-  infer _ (Int _ _) = return (Env.empty, tInt)
-  infer _ (Float _ _) = return (Env.empty, tFloat)
-  infer _ (Str _ _) = return (Env.empty, tStr)
-  infer ctx (Id i _) =
-    case Env.typeOf i ctx of
-      Nothing -> throwUnboundVariableError i
-      Just scheme -> instantiate scheme <&> (,) Env.empty
-
--- infer _ (List [] _) = var <&> (,) Env.empty
--- infer ctx (List (x : xs) pos) = do
---   (s1, tx) <- infer ctx x
---   (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
---   s3 <- unify (tList tx) txs
---   return (s3 <:> s2 <:> s1, s3 +-> txs)
-
-instance Infer Expr where
-  infer ctx (Literal literal) = infer ctx literal
-  infer ctx (App fun arg _) = do
-    (s1, tyFun) <- infer ctx fun
-    (s2, tyArg) <- infer (s1 +-> ctx) arg
-    tyRes <- var
-    s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
-    return (s3 <:> s2 <:> s1, s3 +-> tyRes)
-  infer ctx (If condition e1 e2 _) = do
-    (s1, t1) <- infer ctx condition
-    (s2, t2) <- infer (s1 +-> ctx) e1
-    (s3, t3) <- infer (s2 <:> s1 +-> ctx) e2
-    s4 <- unify (s3 <:> s2 <:> s1 +-> t1) tBool
-    s5 <- unify (s4 <:> s3 <:> s2 <:> s1 +-> t2) t3
-    let s = s5 <:> s4 <:> s3 <:> s2 <:> s1
-    let t = s +-> t2
-    return (s, t)
-  infer ctx (Lam binder body _) = do
-    tyBinder <- var
-    let tmpCtx = Env.insert binder ([] :. tyBinder) ctx
-    (s1, tyBody) <- infer tmpCtx body
-    return (s1, (s1 +-> tyBinder) :-> tyBody)
+infer :: Context -> Expr -> TI (Subst, Type)
+infer _ (Bool _ _) = return (Env.empty, tBool)
+infer _ (Int _ _) = return (Env.empty, tInt)
+infer _ (Float _ _) = return (Env.empty, tFloat)
+infer _ (Str _ _) = return (Env.empty, tStr)
+infer ctx (Id i _) =
+  case Env.typeOf i ctx of
+    Nothing -> throwUnboundVariableError i
+    Just scheme -> instantiate scheme <&> (,) Env.empty
+infer ctx (App fun arg _) = do
+  (s1, tyFun) <- infer ctx fun
+  (s2, tyArg) <- infer (s1 +-> ctx) arg
+  tyRes <- var
+  s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
+  return (s3 <:> s2 <:> s1, s3 +-> tyRes)
+infer ctx (If condition e1 e2 _) = do
+  (s1, t1) <- infer ctx condition
+  (s2, t2) <- infer (s1 +-> ctx) e1
+  (s3, t3) <- infer (s2 <:> s1 +-> ctx) e2
+  s4 <- unify (s3 <:> s2 <:> s1 +-> t1) tBool
+  s5 <- unify (s4 <:> s3 <:> s2 <:> s1 +-> t2) t3
+  let s = s5 <:> s4 <:> s3 <:> s2 <:> s1
+  let t = s +-> t2
+  return (s, t)
+infer ctx (Lam binder body _) = do
+  tyBinder <- var
+  let ctx1 = Env.insert binder ([] :. tyBinder) ctx
+  (s, tyBody) <- infer ctx1 body
+  return (s, (s +-> tyBinder) :-> tyBody)
+infer ctx (XLam pattern body _) = do
+  let fvs = Set.toList $ free pattern \\ Env.members ctx
+  tys <- mapM (const var) fvs
+  let vts = zip fvs tys
+  let ctx1 = foldl (\ctx' (v, t) -> Env.insert v ([] :. t) ctx') ctx vts
+  (s1, tyPat) <- infer ctx1 pattern
+  (s2, tyBody) <- infer (s1 +-> ctx1) body
+  let s = s2 <:> s1
+  return (s, (s +-> tyPat) :-> tyBody)
 
 -- HELPERS ---------------------------------------------------------------------
 
@@ -153,7 +150,7 @@ varBind v ty
   | otherwise = return $ Env.bind v ty
 
 generalize :: Context -> Type -> Scheme
-generalize ctx t = Set.toList (Set.difference (free t) (free ctx)) :. t
+generalize ctx t = Set.toList (free t \\ free ctx) :. t
 
 instantiate :: Scheme -> TI Type
 instantiate (vars :. ty) = do
@@ -190,6 +187,21 @@ primitives =
     [ ("id", ["a"] :. Var "a" :-> Var "a"),
       ("always", ["a", "b"] :. Var "a" :-> Var "b" :-> Var "a"),
       ("(+)", [] :. tInt :-> tInt :-> tInt),
-      ("(:)", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
-      ("null", ["a"] :. tList (Var "a"))
+      ("Cons", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
+      ("Null", ["a"] :. tList (Var "a"))
     ]
+
+-- pos = initialPos "main.pure"
+-- testTI $
+--   XLam
+--     ( App
+--         (App (Literal $ Id "Cons" pos) (Literal $ Id "x" pos) pos)
+--         (Literal $ Id "xs" pos)
+--         pos
+--     )
+--     ( App
+--         (App (Literal $ Id "(+)" pos) (Literal $ Id "x" pos) pos)
+--         (Literal $ Int 1 pos)
+--         pos
+--     )
+--     pos

@@ -10,6 +10,7 @@ module Pure.Typing.Env
     member,
     bind,
     typeOf,
+    members,
     insert,
     Apply (..),
     (<:>),
@@ -19,8 +20,10 @@ where
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import Data.Set (Set)
 import Pure.Typing.Type (Scheme (..), Type (..))
 import Utility.Common (Id)
+import Utility.Strings (li, (+\+))
 
 -- ENVIRONMENT -----------------------------------------------------------------
 
@@ -68,6 +71,9 @@ member k (Env m) = Map.member k m
 typeOf :: Id -> Env a -> Maybe a
 typeOf i (Env m) = Map.lookup i m
 
+members :: Env a -> Set Id
+members (Env m) = Map.keysSet m
+
 -- APPLY -----------------------------------------------------------------------
 
 class Apply a where
@@ -88,3 +94,10 @@ instance Apply Scheme where
 
 instance (Apply a) => Apply (Env a) where
   subst +-> ctx = fmap (subst +->) ctx
+
+-- SHOW ------------------------------------------------------------------------
+
+instance (Show a) => Show (Env a) where
+  show (Env m) = "{" +\+ unlines (map showPair $ Map.toList m) ++ "}"
+    where
+      showPair (k, v) = li k ++ ": " ++ show v
