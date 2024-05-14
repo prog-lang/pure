@@ -79,12 +79,13 @@ instance Infer Literal where
     case Env.typeOf i ctx of
       Nothing -> throwUnboundVariableError i
       Just scheme -> instantiate scheme <&> (,) Env.empty
-  infer _ (List [] _) = var <&> (,) Env.empty
-  infer ctx (List (x : xs) pos) = do
-    (s1, tx) <- infer ctx x
-    (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
-    s3 <- unify (tList tx) txs
-    return (s3 <:> s2 <:> s1, s3 +-> txs)
+
+-- infer _ (List [] _) = var <&> (,) Env.empty
+-- infer ctx (List (x : xs) pos) = do
+--   (s1, tx) <- infer ctx x
+--   (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
+--   s3 <- unify (tList tx) txs
+--   return (s3 <:> s2 <:> s1, s3 +-> txs)
 
 instance Infer Expr where
   infer ctx (Literal literal) = infer ctx literal

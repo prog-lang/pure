@@ -244,25 +244,25 @@ defP = do
 
 exprP :: Parser Expr
 exprP =
-  try whenP
-    <|> try ifP
+  -- try whenP
+  try ifP
     <|> try lambdaP
     <|> try appP
     <|> literalP
     <?> "an expression"
 
-whenP :: Parser Expr
-whenP = do
-  pos <- sourcePos
-  e <- between (reservedP S.when) (reservedP S.is) notIfP
-  brs <- barP >> sepBy1 branchP barP
-  return $ When e brs pos
-  where
-    barP = reservedOp parser [S.bar]
-    branchP = do
-      pat <- litP <* reservedP S.then_
-      result <- exprP
-      return (pat, result)
+-- whenP :: Parser Expr
+-- whenP = do
+--   pos <- sourcePos
+--   e <- between (reservedP S.when) (reservedP S.is) notIfP
+--   brs <- barP >> sepBy1 branchP barP
+--   return $ When e brs pos
+--   where
+--     barP = reservedOp parser [S.bar]
+--     branchP = do
+--       pat <- litP <* reservedP S.then_
+--       result <- exprP
+--       return (pat, result)
 
 ifP :: Parser Expr
 ifP = do
@@ -299,19 +299,18 @@ literalP = parensP exprP <|> (litP <&> Literal)
 
 litP :: Parser Literal
 litP =
-  listP
-    <|> strP
+  strP
     <|> try boolP
     <|> try qualifiedP
     <|> try idP
     <|> try floatP
     <|> intP
 
-listP :: Parser Literal
-listP = do
-  pos <- sourcePos
-  list <- brackets parser $ commaSep1 parser exprP
-  return $ List list pos
+-- listP :: Parser Literal
+-- listP = do
+--   pos <- sourcePos
+--   list <- brackets parser $ commaSep1 parser exprP
+--   return $ List list pos
 
 qualifiedP :: Parser Literal
 qualifiedP = do
