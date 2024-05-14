@@ -16,7 +16,7 @@ import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
 import qualified Data.Set as Set
 import Pure.Expr (Expr (..), Literal (..))
-import Pure.Typing.Env (Apply (..), Env (..), (<:>))
+import Pure.Typing.Env (Apply (..), Context, Subst, (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Error (Error (..))
 import Pure.Typing.Free (Free (..))
@@ -28,11 +28,7 @@ import Utility.Result (Result (..))
 import qualified Utility.Result as Result
 import Utility.Strings (base26, (+-+), (+\\+))
 
--- TYPES -----------------------------------------------------------------------
-
-type Subst = Env Type
-
-type Context = Env Scheme
+-- TYPE INFERENCE MONAD --------------------------------------------------------
 
 type TI a = ExceptT Error (State Int) a
 
