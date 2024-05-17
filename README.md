@@ -1,4 +1,4 @@
-# `purist` - Pure Dev Suite 🧰
+# `pure` - Pure Dev Suite 🧰
 
 Pure is a
 
@@ -27,15 +27,15 @@ We hope that Pure will be able to target the following use cases:
 You may use the installation script:
 
 ```bash
-source <(curl -s https://raw.githubusercontent.com/prog-lang/purist/main/install.sh)
+source <(curl -s https://raw.githubusercontent.com/prog-lang/pure/main/install.sh)
 ```
 
 Or execute these commands manually (the script does the same as the following
 code snippet):
 
 ```bash
-git clone git@github.com:prog-lang/purist.git
-cd purist
+git clone git@github.com:prog-lang/pure.git
+cd pure
 stack install
 ```
 
@@ -49,7 +49,7 @@ on UNIX systems and probably something similar on Windows.
 Therefore, uninstalling is extremely straightforward:
 
 ```bash
-rm $(which purist)
+rm $(which pure)
 ```
 
 ## Usage Basics 👷‍♀️
@@ -57,10 +57,10 @@ rm $(which purist)
 The following command will transpile `someModule.pure` into `someModule.js`.
 
 ```bash
-purist c < someModule.pure > someModule.js
+pure compile someModule.pure > someModule.js
 ```
 
-**NOTE:** Executing `purist` with no arguments displays the _help_ message. Use
+**NOTE:** Executing `pure` with no arguments displays the _help_ message. Use
 it to get acquainted with its capabilities.
 
 ## Develop 👨‍💻
@@ -73,10 +73,10 @@ We are working hard to give you a tool you can be excited about.
 ### Progress
 
 - [x] [Parser](./src/Pure/Parser.hs)
-- [x] [Module (AST)](./src/Pure.hs)
-- [ ] Type Checker with Inference
-- [ ] [Transpiler $\to$ Node.js](./src/Node/Transpiler.hs)
-- [ ] Transpiler $\to$ Go
+- [x] [Type Checker with Inference](./src/Pure/Typing/)
+- [x] [Transpiler to Node.js](./src/Node/Transpiler.hs)
+- [ ] `when x is` expressions
+- [ ] `trait T a can` and `proof T R can` typing
 
 ### Vision
 
@@ -90,8 +90,13 @@ ever touched Elm or Haskell, you will know what I'm on about.
 
 ### Inspiration
 
+- [Elm][elm] - a delightful language for reliable web applications
 - [Duet][duet] - a subset of Haskell aimed at aiding teachers teach Haskell
 - [PureScript][ps] - a strongly-typed language that compiles to JavaScript
+
+[elm]: https://elm-lang.org/
+[duet]: https://github.com/chrisdone/duet
+[ps]: https://github.com/purescript/purescript
 
 ### Syntactic Analysis
 
@@ -111,8 +116,6 @@ ever touched Elm or Haskell, you will know what I'm on about.
 - [Programming Languages: Application and Interpretation][langs-ch.15] -
   chapter 15: Checking Program Invariants Statically: Types
 
-[duet]: https://github.com/chrisdone/duet
-[ps]: https://github.com/purescript/purescript
 [thih]: https://github.com/ocramz/thih
 [thih-pdf]: https://web.cecs.pdx.edu/~mpj/thih/thih.pdf
 [warn]: http://moscova.inria.fr/~maranget/papers/warn/warn.pdf

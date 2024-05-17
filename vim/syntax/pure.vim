@@ -1,4 +1,4 @@
-" syntax highlighting for Pure (github.com/prog-lang/purist)
+" syntax highlighting for Pure (github.com/prog-lang/pure)
 
 if exists('b:current_syntax')
   finish

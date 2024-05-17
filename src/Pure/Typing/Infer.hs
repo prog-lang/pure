@@ -11,12 +11,14 @@ module Pure.Typing.Infer
   )
 where
 
+import Control.Monad (mapAndUnzipM)
 import Control.Monad.Except (ExceptT, runExceptT, throwError, withError)
 import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
+import Data.Set ((\\))
 import qualified Data.Set as Set
 import Pure.Expr (Expr (..))
-import Pure.Typing.Env (Apply (..), Env (..), (<:>))
+import Pure.Typing.Env (Apply (..), Context, Subst, (<:>))
 import qualified Pure.Typing.Env as Env
 import Pure.Typing.Error (Error (..))
 import Pure.Typing.Free (Free (..))
@@ -28,11 +30,7 @@ import Utility.Result (Result (..))
 import qualified Utility.Result as Result
 import Utility.Strings (base26, (+-+), (+\\+))
 
--- TYPES -----------------------------------------------------------------------
-
-type Subst = Env Type
-
-type Context = Env Scheme
+-- TYPE INFERENCE MONAD --------------------------------------------------------
 
 type TI a = ExceptT Error (State Int) a
 
@@ -80,18 +78,12 @@ infer ctx (Id i _) =
   case Env.typeOf i ctx of
     Nothing -> throwUnboundVariableError i
     Just scheme -> instantiate scheme <&> (,) Env.empty
-infer _ (List [] _) = var <&> (,) Env.empty
-infer ctx (List (x : xs) pos) = do
-  (s1, tx) <- infer ctx x
-  (s2, txs) <- infer (s1 +-> ctx) (List xs pos)
-  s3 <- unify (tList tx) txs
-  return (s3 <:> s2 <:> s1, s3 +-> txs)
 infer ctx (App fun arg _) = do
   (s1, tyFun) <- infer ctx fun
   (s2, tyArg) <- infer (s1 +-> ctx) arg
-  tyRes <- var
-  s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
-  return (s3 <:> s2 <:> s1, s3 +-> tyRes)
+  tyResult <- var
+  s3 <- unify (tyArg :-> tyResult) (s2 +-> tyFun)
+  return (s3 <:> s2 <:> s1, s3 +-> tyResult)
 infer ctx (If condition e1 e2 _) = do
   (s1, t1) <- infer ctx condition
   (s2, t2) <- infer (s1 +-> ctx) e1
@@ -103,11 +95,37 @@ infer ctx (If condition e1 e2 _) = do
   return (s, t)
 infer ctx (Lam binder body _) = do
   tyBinder <- var
-  let tmpCtx = Env.insert binder ([] :. tyBinder) ctx
-  (s1, tyBody) <- infer tmpCtx body
-  return (s1, (s1 +-> tyBinder) :-> tyBody)
+  let ctx1 = Env.insert binder ([] :. tyBinder) ctx
+  (s, tyBody) <- infer ctx1 body
+  return (s, (s +-> tyBinder) :-> tyBody)
+infer ctx (XLam pattern body _) = do
+  let fvs = Set.toList $ free pattern \\ Env.members ctx
+  vts <- mapM (const var) fvs <&> zip fvs
+  let ctx1 = foldl (\ctx' (v, t) -> Env.insert v ([] :. t) ctx') ctx vts
+  (s1, tyPat) <- infer ctx1 pattern
+  (s2, tyBody) <- infer (s1 +-> ctx1) body
+  let s = Env.without fvs (s2 <:> s1)
+  -- !    ^^^^^^^^^^^^^^^
+  -- ? Deleting these because patterns of the same `when` expression may
+  -- ? redeclare variables.
+  return (s, (s +-> tyPat) :-> tyBody)
+infer ctx (When x opts _) = do
+  (s1, tyCorpse) <- infer ctx x
+  (s2, tyOpts) <- mapAndUnzipM (infer $ s1 +-> ctx) opts
+  tyResult <- var
+  s3 <- unifyList $ (tyCorpse :-> tyResult) : tyOpts
+  let s = s3 <:> Env.unions s2 <:> s1
+  return (s, s +-> tyResult)
 
 -- HELPERS ---------------------------------------------------------------------
+
+unifyList :: [Type] -> TI Subst
+unifyList [] = return Env.empty
+unifyList [_] = return Env.empty
+unifyList (t : r : ts) = do
+  s1 <- unify t r
+  s2 <- unifyList ts
+  return $ s2 <:> s1
 
 unify :: Type -> Type -> TI Subst
 unify (Var u) t = varBind u t
@@ -150,7 +168,7 @@ varBind v ty
   | otherwise = return $ Env.bind v ty
 
 generalize :: Context -> Type -> Scheme
-generalize ctx t = Set.toList (Set.difference (free t) (free ctx)) :. t
+generalize ctx t = Set.toList (free t \\ free ctx) :. t
 
 instantiate :: Scheme -> TI Type
 instantiate (vars :. ty) = do
@@ -187,6 +205,21 @@ primitives =
     [ ("id", ["a"] :. Var "a" :-> Var "a"),
       ("always", ["a", "b"] :. Var "a" :-> Var "b" :-> Var "a"),
       ("(+)", [] :. tInt :-> tInt :-> tInt),
-      ("(:)", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
-      ("null", ["a"] :. tList (Var "a"))
+      ("Cons", ["a"] :. Var "a" :-> tList (Var "a") :-> tList (Var "a")),
+      ("Null", ["a"] :. tList (Var "a"))
     ]
+
+-- pos = initialPos "main.pure"
+-- testTI $
+--   XLam
+--     ( App
+--         (App (Literal $ Id "Cons" pos) (Literal $ Id "x" pos) pos)
+--         (Literal $ Id "xs" pos)
+--         pos
+--     )
+--     ( App
+--         (App (Literal $ Id "(+)" pos) (Literal $ Id "x" pos) pos)
+--         (Literal $ Int 1 pos)
+--         pos
+--     )
+--     pos

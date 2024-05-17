@@ -10,7 +10,11 @@ module Pure.Typing.Env
     member,
     bind,
     typeOf,
+    members,
     insert,
+    delete,
+    without,
+    unions,
     Apply (..),
     (<:>),
   )
@@ -19,8 +23,10 @@ where
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromMaybe)
+import Data.Set (Set)
 import Pure.Typing.Type (Scheme (..), Type (..))
 import Utility.Common (Id)
+import Utility.Strings (li, (+\+))
 
 -- ENVIRONMENT -----------------------------------------------------------------
 
@@ -55,10 +61,19 @@ bind k = Env . Map.singleton k
 s1@(Env m1) <:> (Env m2) = Env $ Map.union (Map.map (s1 +->) m2) m1
 -- ^ The union is left biased.
 
+unions :: (Foldable t) => t (Env Type) -> Env Type
+unions = foldl (<:>) empty
+
 -- UPDATE ----------------------------------------------------------------------
 
 insert :: Id -> a -> Env a -> Env a
 insert i a (Env m) = Env $ Map.insert i a m
+
+delete :: Id -> Env a -> Env a
+delete i (Env m) = Env $ Map.delete i m
+
+without :: (Foldable t) => t Id -> Env a -> Env a
+without is env = foldr delete env is
 
 -- QUERY -----------------------------------------------------------------------
 
@@ -67,6 +82,9 @@ member k (Env m) = Map.member k m
 
 typeOf :: Id -> Env a -> Maybe a
 typeOf i (Env m) = Map.lookup i m
+
+members :: Env a -> Set Id
+members (Env m) = Map.keysSet m
 
 -- APPLY -----------------------------------------------------------------------
 
@@ -88,3 +106,10 @@ instance Apply Scheme where
 
 instance (Apply a) => Apply (Env a) where
   subst +-> ctx = fmap (subst +->) ctx
+
+-- SHOW ------------------------------------------------------------------------
+
+instance (Show a) => Show (Env a) where
+  show (Env m) = "{" +\+ unlines (map showPair $ Map.toList m) ++ "}"
+    where
+      showPair (k, v) = li k ++ ": " ++ show v

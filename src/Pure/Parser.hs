@@ -4,7 +4,6 @@
 
 module Pure.Parser
   ( Module (..),
-    Id,
     moduleNames,
     assignmentNames,
     typeHintNames,
@@ -189,11 +188,9 @@ definitionP = Def <$> (typeDefP <|> try typeHintP <|> defP)
 
 typeDefP :: Parser Def
 typeDefP = do
-  _ <- reservedP S.type_
-  name <- upperNameP
+  name <- reservedP S.type_ >> upperNameP
   params <- many lowerNameP
-  _ <- reservedP S.is >> barP
-  cons <- sepBy1 typeConsP barP
+  cons <- reservedP S.is >> barP >> sepBy1 typeConsP barP
   return $ TypeDef name params cons
   where
     barP = reservedOp parser [S.bar]
@@ -201,8 +198,7 @@ typeDefP = do
 typeHintP :: Parser Def
 typeHintP = do
   name <- nameP
-  _ <- reservedOp parser S.typed
-  ty <- typeP
+  ty <- reservedOp parser S.typed >> typeP
   return $ TypeHint name ty
 
 typeConsP :: Parser Type
@@ -243,12 +239,30 @@ typeVarP = do
 defP :: Parser Def
 defP = do
   name <- nameP
-  _ <- reservedOp parser S.walrus
-  expr <- exprP
+  expr <- reservedOp parser S.walrus >> exprP
   return $ ValueDef name expr
 
 exprP :: Parser Expr
-exprP = try ifP <|> try lambdaP <|> try appP <|> literalP <?> "an expression"
+exprP =
+  -- try whenP
+  try ifP
+    <|> try lambdaP
+    <|> try appP
+    <|> literalP
+    <?> "an expression"
+
+-- whenP :: Parser Expr
+-- whenP = do
+--   pos <- sourcePos
+--   e <- between (reservedP S.when) (reservedP S.is) notIfP
+--   brs <- barP >> sepBy1 branchP barP
+--   return $ When e brs pos
+--   where
+--     barP = reservedOp parser [S.bar]
+--     branchP = do
+--       pat <- litP <* reservedP S.then_
+--       result <- exprP
+--       return (pat, result)
 
 ifP :: Parser Expr
 ifP = do
@@ -265,7 +279,7 @@ notIfP = try lambdaP <|> try appP <|> literalP <?> "a condition"
 lambdaP :: Parser Expr
 lambdaP = do
   pos <- sourcePos
-  param <- nameP <* reservedOp parser S.arrow <?> "a named parameter"
+  param <- lowerNameP <* reservedOp parser S.arrow <?> "a named parameter"
   expr <- exprP
   return $ Lam param expr pos
 
@@ -281,21 +295,22 @@ callerP :: Parser Expr
 callerP = parensP exprP <|> try qualifiedP <|> idP
 
 literalP :: Parser Expr
-literalP =
-  parensP exprP
-    <|> listP
-    <|> strP
+literalP = parensP exprP <|> litP
+
+litP :: Parser Expr
+litP =
+  strP
     <|> try boolP
     <|> try qualifiedP
     <|> try idP
     <|> try floatP
     <|> intP
 
-listP :: Parser Expr
-listP = do
-  pos <- sourcePos
-  list <- brackets parser $ commaSep1 parser exprP
-  return $ List list pos
+-- listP :: Parser Expr
+-- listP = do
+--   pos <- sourcePos
+--   list <- brackets parser $ commaSep1 parser exprP
+--   return $ List list pos
 
 qualifiedP :: Parser Expr
 qualifiedP = do
