@@ -12,6 +12,9 @@ module Pure.Typing.Env
     typeOf,
     members,
     insert,
+    delete,
+    without,
+    unions,
     Apply (..),
     (<:>),
   )
@@ -58,10 +61,19 @@ bind k = Env . Map.singleton k
 s1@(Env m1) <:> (Env m2) = Env $ Map.union (Map.map (s1 +->) m2) m1
 -- ^ The union is left biased.
 
+unions :: (Foldable t) => t (Env Type) -> Env Type
+unions = foldl (<:>) empty
+
 -- UPDATE ----------------------------------------------------------------------
 
 insert :: Id -> a -> Env a -> Env a
 insert i a (Env m) = Env $ Map.insert i a m
+
+delete :: Id -> Env a -> Env a
+delete i (Env m) = Env $ Map.delete i m
+
+without :: (Foldable t) => t Id -> Env a -> Env a
+without is env = foldr delete env is
 
 -- QUERY -----------------------------------------------------------------------
 

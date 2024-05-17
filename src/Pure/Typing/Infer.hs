@@ -11,6 +11,7 @@ module Pure.Typing.Infer
   )
 where
 
+import Control.Monad (mapAndUnzipM)
 import Control.Monad.Except (ExceptT, runExceptT, throwError, withError)
 import Control.Monad.State (State, evalState, get, put, runState)
 import Data.Functor ((<&>))
@@ -80,9 +81,9 @@ infer ctx (Id i _) =
 infer ctx (App fun arg _) = do
   (s1, tyFun) <- infer ctx fun
   (s2, tyArg) <- infer (s1 +-> ctx) arg
-  tyRes <- var
-  s3 <- unify (tyArg :-> tyRes) (s2 +-> tyFun)
-  return (s3 <:> s2 <:> s1, s3 +-> tyRes)
+  tyResult <- var
+  s3 <- unify (tyArg :-> tyResult) (s2 +-> tyFun)
+  return (s3 <:> s2 <:> s1, s3 +-> tyResult)
 infer ctx (If condition e1 e2 _) = do
   (s1, t1) <- infer ctx condition
   (s2, t2) <- infer (s1 +-> ctx) e1
@@ -99,15 +100,32 @@ infer ctx (Lam binder body _) = do
   return (s, (s +-> tyBinder) :-> tyBody)
 infer ctx (XLam pattern body _) = do
   let fvs = Set.toList $ free pattern \\ Env.members ctx
-  tys <- mapM (const var) fvs
-  let vts = zip fvs tys
+  vts <- mapM (const var) fvs <&> zip fvs
   let ctx1 = foldl (\ctx' (v, t) -> Env.insert v ([] :. t) ctx') ctx vts
   (s1, tyPat) <- infer ctx1 pattern
   (s2, tyBody) <- infer (s1 +-> ctx1) body
-  let s = s2 <:> s1
+  let s = Env.without fvs (s2 <:> s1)
+  -- !    ^^^^^^^^^^^^^^^
+  -- ? Deleting these because patterns of the same `when` expression may
+  -- ? redeclare variables.
   return (s, (s +-> tyPat) :-> tyBody)
+infer ctx (When x opts _) = do
+  (s1, tyCorpse) <- infer ctx x
+  (s2, tyOpts) <- mapAndUnzipM (infer $ s1 +-> ctx) opts
+  tyResult <- var
+  s3 <- unifyList $ (tyCorpse :-> tyResult) : tyOpts
+  let s = s3 <:> Env.unions s2 <:> s1
+  return (s, s +-> tyResult)
 
 -- HELPERS ---------------------------------------------------------------------
+
+unifyList :: [Type] -> TI Subst
+unifyList [] = return Env.empty
+unifyList [_] = return Env.empty
+unifyList (t : r : ts) = do
+  s1 <- unify t r
+  s2 <- unifyList ts
+  return $ s2 <:> s1
 
 unify :: Type -> Type -> TI Subst
 unify (Var u) t = varBind u t

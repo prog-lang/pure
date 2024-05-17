@@ -24,7 +24,8 @@ data Expr
   | Float Double SourcePos
   | Int Integer SourcePos
   | Bool Bool SourcePos
-  -- \| When Expr [(Literal, Expr)] SourcePos
+  | --         XLam
+    When Expr [Expr] SourcePos
   deriving (Eq)
 
 -- FREE ------------------------------------------------------------------------
@@ -51,6 +52,7 @@ class Position a where
 
 instance Position Expr where
   positionOf (Lam _ _ pos) = pos
+  positionOf (When _ _ pos) = pos
   positionOf (XLam _ _ pos) = pos
   positionOf (If _ _ _ pos) = pos
   positionOf (App _ _ pos) = pos
@@ -80,10 +82,4 @@ instance Show Expr where
   show (If x y z _) = S.if_ +-+ show x +-+ S.then_ +-+ show y +-+ S.else_ +-+ show z
   show (Lam from to _) = from +-+ S.arrow +-+ show to
   show (XLam from to _) = parens from +-+ S.arrow +-+ show to
-
--- show (When _ [] _) = undefined
--- show (When e branches _) =
---   S.when +-+ show e +-+ S.is +-+ unwords (map showBranch branches)
---   where
---     showBranch (pattern, result) =
---       [S.bar] +-+ show pattern +-+ S.then_ +-+ show result
+  show (When x opts _) = S.when +-+ show x +-+ S.is +-+ unwords (map show opts)
